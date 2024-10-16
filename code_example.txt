@@ -1,0 +1,7 @@
+def zero belong Natural;
+def one belong Natural;
+rule equiv any x : x belongs Natural -> x = x;
+rule sum_1 any x, y : x belong Natural, y belong Natural -> x + y belong Natural;
+
+one = one from equiv one belong Natural;
+one + one belong Natural from_ sum_1 one belong Natural, one belong Natural;
