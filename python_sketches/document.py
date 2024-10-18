@@ -6,6 +6,7 @@ class MP_document:
         self.theorems = []
         self.rules = []
         self.definitions = []
+        self.legal_expressions = []
         self.doc_reader = Document_sheet_reader(self)
     
     def find_rule(self, rule_name:str):

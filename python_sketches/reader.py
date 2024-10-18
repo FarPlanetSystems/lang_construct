@@ -21,19 +21,21 @@ class Expression:
             i+=1
         return False
 
-class Definition:
+class Definition: #def zero belong Natural
     def __init__(self, define:Expression, line:int):
         self.expr = define
         self.line = line
 
-class Definition_creater:
+class Definition_creater:#def zero belong Natural
     def __init__(self, define:str, line:int, doc:MP_document):
-        self.def_expr = define
-        self.def_expr = Expression(line)
+        
+        self.def_line = line
         self.def_doc = doc
+        self.def_expr = Expression(define[5:]) #zero belong Natural
     def create(self) -> Definition:
-        definition = Definition(self.def_expr, self.def_expr)
+        definition = Definition(self.def_expr, self.def_line)
         self.def_doc.definitions.append(definition)
+        self.def_doc.legal_expressions.append(self.def_expr)
         return definition
         
 
