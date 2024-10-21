@@ -1,0 +1,5 @@
+def ab;
+rule rule1 any x:ax->aax;
+have :aaab_from rule1 (b) :ab;
+@---
+Compilation error, in the rule rule rule1 any xax->aax symbol : was exprected
