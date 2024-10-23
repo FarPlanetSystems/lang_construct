@@ -1,4 +1,4 @@
-in any formal languages, you will really need to look at spaces inbetween, for instances
+in any formal languages, you will really need to be careful with spaces inbetween, for instances
 the following statements are not equivalent:
 
 aaab;
