@@ -6,12 +6,16 @@ class Rule:
         self.premisses = premisses
         self.variables = variables
         self.conclusion = conclusion
+        self.read_succesfully = True
         self.sendMessage = self.__default_send_message
 
     def __default_send_message(line:str):
         print(line)
     
     def check(self, var_values, premisses, suppoused_conclusion:Expression, legal_expressions):
+        if not self.read_succesfully:
+            return False
+
         if len(var_values) != len(self.variables):
             return False
 
@@ -26,7 +30,7 @@ class Rule:
 
         context_premisses = self.premisses #reforming the exprected premisses with the given variables values
         for i in range(len(context_premisses)):
-            self.__imply_variables(context_premisses[i], var_values)
+            context_premisses[i] = self.__imply_variables(context_premisses[i], var_values)
         context_conclusion = self.__imply_variables(self.conclusion, var_values) # the same to the exprected conclusion
 
         for i in range(len(premisses)): # here we compare the exprected premisses with the given. 
@@ -38,116 +42,166 @@ class Rule:
             return True
     
 
-    def __imply_variables(self, expression:Expression, values):
-        expr = expression
+    def __imply_variables(self, expr:Expression, values):
         for i in range(len(expr.content)):
             for j in range(len(self.variables)):
                 if expr.content[i] == self.variables[j]:
                     expr.content = expr.content.replace(expr.content[i], values[j])
-        return expression
+        return expr
 
 class Rule_creator:
-    def __init__(self, messanger, line:str): #rule sum_1 any x , y : x belong Natural, y belong Natural -> x + y belong Natural
+    def __init__(self, messanger, line:str, line_num:int): #rule sum_1 any x , y : x belong Natural, y belong Natural -> x + y belong Natural
         self.line = line
+        self.line_num = line_num
         self.notify_rule_created = messanger
         self.messanger = messanger
+        self.key_word = "rule"
+        self.is_read_succesfully = True
 
     def Create(self) -> Rule:
+        is_srtuctured_succesfully = self.__strcuture()# dividing the rule line into smaller logical parts
 
-        rule_expr = Expression(self.line) # checking the syntax
-        if rule_expr.find_expression(":") == False:
-            self.messanger("Compilation error, in the rule " + self.line + " symbol : was exprected")
-            return
+        params = None
+        premisses = None
+        conclusion = None
+        name = None
 
-        if rule_expr.find_expression("->") == False:
-            self.messanger("Compilation error, in the rule " + self.line + " symbol -> was exprected")
-            return
+        if is_srtuctured_succesfully:
+            params = self.__read_params(self.params_line)#handling the part with variables
+            premisses = self.__read_premisses(self.premiss_line)#handling the part with premisses
+            conclusion = self.__read_conclusion(self.conclusion_line)#handling the part with the conclusion
+            name = self.__read_name(self.name_line)
+
+        if name == None:
+            name = ""
+            self.is_read_succesfully = False
+        if params == None:
+            params = []
+            self.is_read_succesfully = False
+        if conclusion == None:
+            conclusion = Expression("")
+            self.is_read_succesfully = False
+        if premisses == None:
+            self.premisses = []
+            self.is_read_succesfully = False
         
-        self.__strcuture()# dividing the rule line into smaller logical parts
-
-        self.__read_variables()#handling the part with variables
-
-        self.__read_premisses()#handling the part with premisses
-
-        self.__read_conclusion()#handling the part with the conclusion
-
-        result = Rule(self.ruleName, self.variables, self.premisses, Expression(self.conclusion))
+        result = Rule(name, params, premisses, conclusion)
         result.sendMessage = self.messanger
         self.notify_rule_created(result)
+        if not is_srtuctured_succesfully or not self.is_read_succesfully:
+            result.read_succesfully = False
         return result
     
-    def __strcuture(self): #rule sum_1 any x, y : x belong Natural, y belong Natural -> x + y belong Natural
-        name = ""#sum_1
-        var_field = ""#any x, y 
-        premiss_field = ""# x belong Natural, y belong Natural 
-        concl_field = ""# x + y belong Natural
-
-        i = 5 #we pass the "rule" flagg
-        while self.line[i + 1 : i + 4] != "any":
-            name += self.line[i]
-            i+=1
-        i+=1 #we pass the space symbol between the name and the section fot variables
-        
-        while self.line[i] != ":":
-            var_field += self.line[i]
-            i += 1
-        i+= 1 # we pass the : symbol
-        
-        while self.line[i] != "-" and self.line[i+1] != ">":
-            premiss_field += self.line[i]
-            i+=1
-        i += 2 # we pass the -> symbol
-        while i < len(self.line):
-            concl_field += self.line[i]
-            i+=1
-        
-        self.ruleName = name
-        self.variables = var_field
-        self.premisses = premiss_field
-        self.conclusion = concl_field
-
-
-    def __read_variables(self): #any x, y
-        variables = []
+    def __strcuture(self) -> bool: #rule sum_1 (x, y) : [x belong Natural], [y belong Natural] > {x + y belong Natural}
+        self.name_line = ""
+        self.params_line = ""
+        self.premiss_line = ""
+        self.conclusion_line = ""
         i = 0
-        if self.variables[0:3] != "any": # we could have a rule without variables, that is, a definition
-            self.variables = variables
-            return 
+        line_expression = Expression(self.line)
+        # here we are looking for the key_word
+        while self.line[i:i+4] != self.key_word: 
+            i+=1
+        i += len(self.key_word)
+        # we are skipping the empty spaces between the key word and the rule name
+        while self.line[i] == " ":
+            i+=1
+        # we are reading the name of our rule
+        while self.line[i] != " " and self.line[i] != "(":
+            self.name_line += self.line[i] 
+            i+=1
+        #we are skipping the empty spaces between the name and parametres
+        while self.line[i] == " ":
+            i += 1
+        if self.line[i] != "(":
+            self.messanger("Compilation error: defining a rule, brackets () for parametres were expected. Line " + str(self.line_num))
+            return False
         else:
-            i = 4 # else we pass the "any" symbol
-        variable = ""
-        while i < len(self.variables):
-            if self.variables[i] == ",":
-                if variable == "": # we dont allow to add an empty variable - if you have a comma, you have to write a variable before
-                    self.messanger("Compilation error: a variable was expected in rule "+self.ruleName)
-                    return
-                variables.append(variable)
-            else:
-                variable+=self.variables[i]
             i += 1
-        if  variable != "": # for we add variables until we achieve the end of the line, the last variable arent going to be taken
-            variables.append(variable)
-        self.variables = variables
+        line_expression.content = self.line[i:]
+        if not line_expression.find_expression(")"):
+            self.messanger("Compilation error: defining a rule, brackets () for parametres should be closed. Line " + str(self.line_num))
+            return False
+        # we are reading the required parametres
+        closing_brackets_index = self.line.index(")")
+        self.params_line = self.line[i:closing_brackets_index]
+        i = closing_brackets_index
+        i += 1
+        #we are skipping the empty spaces
+        while self.line[i] == " ":
+            i += 1
+        # checking the presence of ':' symbol
+        if self.line[i] != ":":
+            self.messanger("Compilation error: defining a rule, transition symbol : was expected. Line " + str(self.line_num))
+            return False
+        else:
+            i += 1
+        #we are skipping the empty spaces
+        while self.line[i] == " ":
+            i += 1
+        line_expression.content = self.line[i:]
+        # checking the presence of '>' symbol
+        if not line_expression.find_expression(">"):
+            self.messanger("Compilation error: defining a rule, refering symbol > was expected. Line " + str(self.line_num))
+            return False
+        # we are reading the premisses
+        refering_symbol_index = line_expression.content.index(">")
+        self.premiss_line = line_expression.content[0:refering_symbol_index]
+        i = i + refering_symbol_index
+        i += 1
+        #we are skipping the empty spaces
+        while self.line[i] == " ":
+            i += 1
+        # checking the presence of the curly brackets
+        if self.line[i] != "{":
+            self.messanger("Compilation error: introducing the conclusion of a rule, curly brackets were expected. Line " + str(self.line_num))
+            return False
+        else:
+            i += 1
+        line_expression.content = self.line[i:]
+        if not line_expression.find_expression("}"):
+            self.messanger("Compilation error: introducing the conclusion of a rule, curly brackets must be closed. Line " + str(self.line_num))
+            return False
+        # we are reading the conclusion
+        closing_brackets_index = line_expression.content.index("}")
+        self.conclusion_line = line_expression.content[0:closing_brackets_index]
+        i = i + closing_brackets_index
+        return True
 
-    def __read_premisses(self): # x belong Natural, y belong Natural 
-        premisses = []
-        i = 0
-        premiss = ""
-        while i < len(self.premisses):
-            if self.premisses[i] == ",":
-                if premiss == "":
-                    self.messanger("Compilation error: a premiss was expected in rule "+ self.ruleName)
-                    return
-                premisses.append(premiss)
+    def __read_params(self, line:str): #x, y
+        params = line.split(",")
+        for i in params:
+            if i == "":
+                self.messanger("Compilation error: an non-empty parameter was expected. Line " + str(self.line_num))
+                self.is_read_succesfully = False
+                return []
+        return params
+        
+    def __read_premisses(self, line:str): # [x belong Natural], [y belong Natural]
+        premisses = line.split(",")
+        for i in range(len(premisses)):
+            premiss = premisses[i]
+            j = 0
+            while premiss[j] == " ":
+                j += 1
+            if premiss[j] != "[":
+                self.messanger("Compilation error: premisses must be declared in square brackets. Line " + str(self.line_num))
+                self.is_read_succesfully = False
+                return []
             else:
-                premiss += self.premisses[i]
-            i+=1
-        premisses.append(Expression(premiss))
-        self.premisses = premisses
+                j += 1
+            if not Expression(premiss).find_expression("]"):
+                self.messanger("Compilation error: square brackets must be closed. Line " + str(self.line_num))
+                self.is_read_succesfully = False
+                return []
+            closing_bracket_index = premiss.index("]")
+            premisses[i] = premiss[j:closing_bracket_index]
+            premisses[i] = Expression(premisses[i])
+        return premisses
 
-    
-    def __read_conclusion(self):# x + y belong Natural
-        concl_expr = Expression(self.conclusion)
-        if concl_expr.find_expression(","):
-            self.messanger("Compilation error: an unexpected symbol , in " + self.ruleName + " conclusion")
-            return
+    def __read_conclusion(self, line:str):# x + y belong Natural
+        concl_expr = Expression(line)
+        return concl_expr
+    def __read_name(self, line:str):
+        rule_name = line
+        return rule_name
