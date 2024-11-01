@@ -5,6 +5,7 @@ aaab;
 aaab ;
  aaab;
 
+the actual example:
 
 def [zero belong Natural];
 def [one belong Natural];

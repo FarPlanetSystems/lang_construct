@@ -28,10 +28,13 @@ class Rule:
                 self.sendMessage("No verified premiss " + i.content + " found while verifing rule " + self.name)
 
 
-        context_premisses = self.premisses #reforming the exprected premisses with the given variables values
+        context_premisses = []
+        for i in self.premisses:
+            context_premisses.append(i.clone())
+        #reforming the exprected premisses with the given variables values
         for i in range(len(context_premisses)):
             context_premisses[i] = self.__imply_variables(context_premisses[i], var_values)
-        context_conclusion = self.__imply_variables(self.conclusion, var_values) # the same to the exprected conclusion
+        context_conclusion = self.__imply_variables(self.conclusion.clone(), var_values) # the same to the exprected conclusion
 
         for i in range(len(premisses)): # here we compare the exprected premisses with the given. 
             if not premisses[i].compare_content(context_premisses[i]):

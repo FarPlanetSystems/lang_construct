@@ -27,3 +27,5 @@ class Expression:
             else:
                 result += self.content[i]
             i+=1
+    def clone(self):
+        return Expression(self.content)

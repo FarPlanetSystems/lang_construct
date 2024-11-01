@@ -1,4 +1,5 @@
 def [ab];
 rule rule1 (x) : [ax] > {aax};
 have {aab} from rule1 (b) [ab];
+have {aaab} from rule1 (ab) [aab];
 @---
