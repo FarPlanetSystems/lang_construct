@@ -1,0 +1,20 @@
+in any formal languages, you will really need to be careful with spaces inbetween, for instances
+the following statements are not equivalent:
+
+aaab;
+aaab ;
+ aaab;
+
+the actual example:
+
+#simple resemblance of Peano's axioms. Of cource they are not going to work properly without a first-order logic and its grammar. Just look around
+
+def "zero belong Natural";
+def "one belong Natural";
+
+
+rule equiv (x) : -> "[x] = [x]";
+rule sum1 (x, y) : "[x] belong Natural" , "[y] belong Natural" -> "[x] + [y] belong Natural";
+
+have "one = one" from equiv (one);
+have "one + one belong Natural" from sum1 (one, one) "one belong Natural" , "one belong Natural";
