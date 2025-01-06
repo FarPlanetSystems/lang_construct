@@ -1,4 +1,4 @@
-package lang_construct
+package main
 
 //Token types
 const STRING = "STRING"

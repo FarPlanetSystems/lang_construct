@@ -1,4 +1,4 @@
-package lang_construct
+package main
 
 import (
 	"bufio"
@@ -32,7 +32,7 @@ func create_project(raw_text string, file_name string) *LC_project {
 	return &res
 }
 
-func Run() {
+func main() {
 	os.Mkdir("projects", 0644)
 	for{
 		// we get the file name of a .txt from the terminal
