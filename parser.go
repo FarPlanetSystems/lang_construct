@@ -150,6 +150,7 @@ func statement(parser *Parser) {
 // we parce the whole code that must represent a formal language
 // see the specification of language construct interpretator
 // language: (RULE | DEF | HAVE | COMMENT | NEW_LINE)* (EOF | REPORT_SECTION)
+// returns true if code is succefully parced
 func Language(parser *Parser) bool {
 	
 	token := parser.current_token.token_type

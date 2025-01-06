@@ -21,7 +21,7 @@ type LC_project struct {
 	file_name               string
 }
 
-func Create_project(raw_text string, file_name string) *LC_project {
+func create_project(raw_text string, file_name string) *LC_project {
 	res := LC_project{
 		doc_code:                raw_text,
 		is_there_report_section: false,
@@ -32,7 +32,7 @@ func Create_project(raw_text string, file_name string) *LC_project {
 	return &res
 }
 
-func run() {
+func Run() {
 	os.Mkdir("projects", 0644)
 	for{
 		// we get the file name of a .txt from the terminal
@@ -45,7 +45,7 @@ func run() {
 func interpretation_cycle(file_name string){
 	//we get the content of the file of the given name and convert it to string
 	code, is_succesfull := read_code(file_name)
-	project := Create_project(code, file_name)
+	project := create_project(code, file_name)
 	if is_succesfull{
 		project.doc_code = code
 		//we let the lexer and parser do their work
