@@ -1,3 +1,3 @@
-module github.com/FarPlanetSystems/Lang_construct
+module github.com/FarPlanetSystems/lang_construct
 
 go 1.23.4

@@ -1,4 +1,4 @@
-package main
+package lang_construct
 
 import (
 	"strconv"
