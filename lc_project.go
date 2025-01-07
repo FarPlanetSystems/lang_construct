@@ -49,9 +49,12 @@ func main() {
 func interpretation_cycle(file_name string){
 	//we get the content of the file of the given name and convert it to string
 	code, is_succesfull := read_code(file_name)
-	project := create_project(code, file_name)
+	if len(code) < 1{
+		is_succesfull = false
+		fmt.Println("cannot run an empty file")
+	}
 	if is_succesfull{
-		project.doc_code = code
+		project := create_project(code, file_name)
 		//we let the lexer and parser do their work
 		interpret_project(project)
 		//if there is no errors in the code, we start to verify each given statement (lines with HAVE)
