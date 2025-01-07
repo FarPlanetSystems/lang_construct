@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 )
 
@@ -103,6 +104,7 @@ func def(parser *Parser) {
 
 // statement : HAVE STRING FROM ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) (SEMI | STRING SEMI | STRING (COMMA STRING)* SEMI)
 func statement(parser *Parser) {
+
 	eat(parser, HAVE)
 	conclusion := parser.current_token.value
 	//get statement
@@ -114,7 +116,9 @@ func statement(parser *Parser) {
 	// get params
 	var params []string
 	eat(parser, BRACKETS_L)
-	for parser.current_token.token_type != BRACKETS_R {
+	fmt.Println("d")
+	for parser.current_token.token_type != BRACKETS_R && parser.is_parsed_successfully{
+
 		if parser.current_token.token_type == COMMA {
 			eat(parser, COMMA)
 			param := parser.current_token.value
@@ -130,7 +134,7 @@ func statement(parser *Parser) {
 
 	// get premises
 	var premises []string
-	for parser.current_token.token_type != SEMI {
+	for parser.current_token.token_type != SEMI && parser.is_parsed_successfully{
 		if parser.current_token.token_type == COMMA {
 			eat(parser, COMMA)
 			premise := parser.current_token.value
@@ -156,6 +160,7 @@ func Language(parser *Parser) bool {
 	token := parser.current_token.token_type
 	for token != REPORT_SECTION && token != EOF && parser.is_parsed_successfully {
 		//fmt.Println("given: \n" + token)
+
 		switch token {
 		case RULE:
 			rule(parser)

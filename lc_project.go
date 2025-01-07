@@ -22,10 +22,14 @@ type LC_project struct {
 }
 
 func create_project(raw_text string, file_name string) *LC_project {
+	curdir, err := os.Getwd()
+	if err != nil{
+		fmt.Println(err)
+	}
 	res := LC_project{
 		doc_code:                raw_text,
 		is_there_report_section: false,
-		file_name:               "projects\\" + file_name,
+		file_name:               curdir + "\\projects\\" + file_name,
 		is_interpreted_succesfully: true,
 		is_coherent: false,
 	}
@@ -75,12 +79,17 @@ func interpret_project(project *LC_project) {
 //if there is such a file, returns its content before "@" symbol converted to string and true.
 //otherwise, an empty string and false
 func read_code(file_name string) (string, bool){
-	_, err := os.Open("projects/"+file_name)
+	curdir, err := os.Getwd()
+	if err != nil{
+		fmt.Println(err)
+	}
+	file_path := curdir + "\\projects\\" + file_name
+	_, err = os.Open(file_path)
 	if err != nil{
 		fmt.Println(err)
 		return "", false
 	}
-	bytes, _:= os.ReadFile("projects/"+file_name)
+	bytes, _:= os.ReadFile(file_path)
 	code := ""
 	for i := 0; i < len(bytes); i++{
 		if string(bytes[i]) != "@"{
@@ -128,9 +137,8 @@ func report(project LC_project){
 		new_doc_line += project.reports[i]
 		new_doc_line += "\n"
 	}
-	curdir, _ := os.Getwd()
 	os.Truncate(project.file_name, 0)
-	i := os.WriteFile(curdir +"\\" + project.file_name, []byte(new_doc_line), 0644)
+	i := os.WriteFile(project.file_name, []byte(new_doc_line), 0644)
 	if i != nil{
 		fmt.Println(i)
 	}
