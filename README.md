@@ -1,4 +1,4 @@
-# LangConstruct
+# lang_construct
 
 A tool for defining formal systems.
 
