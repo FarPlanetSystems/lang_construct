@@ -36,6 +36,22 @@ func create_project(raw_text string, file_name string) *LC_project {
 	return &res
 }
 
+func deep_copy_project(old_project LC_project) LC_project {
+	var new_project LC_project
+	new_project.doc_code = old_project.doc_code
+	new_project.file_name = old_project.file_name
+	new_project.is_coherent = old_project.is_coherent
+	new_project.is_interpreted_succesfully = old_project.is_interpreted_succesfully
+	new_project.is_there_report_section = old_project.is_there_report_section
+
+	new_project.all_definitions = append(new_project.all_definitions, old_project.all_definitions...)
+	new_project.all_legal_expressions = append(new_project.all_legal_expressions, old_project.all_legal_expressions...)
+	new_project.all_rules = append(new_project.all_rules, old_project.all_rules...)
+	new_project.all_statements = append(new_project.all_statements, old_project.all_statements...)
+	new_project.reports = append(new_project.reports, old_project.reports...)
+	return new_project
+}
+
 func main() {
 	os.Mkdir("projects", 0644)
 	for{
@@ -151,40 +167,3 @@ func create_definition(definition string, project *LC_project) {
 	project.all_definitions = append(project.all_definitions, definition)
 	project.all_legal_expressions = append(project.all_legal_expressions, definition)
 }
-
-func create_rule(name string, params []string, premises []string, conclusion string, project *LC_project) Rule {
-	res := Rule{
-		name:       name,
-		premises:   premises,
-		params:     params,
-		conclusion: conclusion,
-		message:    default_message,
-	}
-	project.all_rules = append(project.all_rules, res)
-	return res
-}
-
-func create_statement(rule_name string, concusion string, params []string, premises []string, project *LC_project) Statement {
-	res := Statement{
-		rule_name:  rule_name,
-		conclusion: concusion,
-		params:     params,
-		premises:   premises,
-	}
-	project.all_statements = append(project.all_statements, res)
-	return res
-}
-/*
-func reset_project(project *LC_project) {
-	clear(project.all_rules)
-	clear(project.all_statements)
-	clear(project.all_definitions)
-	clear(project.all_legal_expressions)
-	clear(project.reports)
-	project.is_coherent = false
-	project.is_interpreted_succesfully = true
-	project.is_there_report_section = false
-}
-	*/
-
-

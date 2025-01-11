@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 )
 
@@ -50,7 +49,7 @@ func rule(parser *Parser) {
 	//get params
 	var params []string
 	eat(parser, BRACKETS_L)
-	for parser.current_token.token_type != BRACKETS_R {
+	for parser.current_token.token_type != BRACKETS_R && parser.is_parsed_successfully{
 		if parser.current_token.token_type == COMMA {
 			eat(parser, COMMA)
 			param := parser.current_token.value
@@ -69,7 +68,7 @@ func rule(parser *Parser) {
 	var premises []string
 	if parser.current_token.token_type != ARROW{
 		eat(parser, COLON)
-		for parser.current_token.token_type != ARROW {
+		for parser.current_token.token_type != ARROW && parser.is_parsed_successfully{
 			if parser.current_token.token_type == COMMA {
 				eat(parser, COMMA)
 				premise := parser.current_token.value
@@ -87,7 +86,7 @@ func rule(parser *Parser) {
 	conclusion := parser.current_token.value
 	eat(parser, STRING)
 	eat(parser, SEMI)
-	create_rule(rule_name, params, premises, conclusion, parser.project)
+	create_rule(rule_name, params, premises, conclusion, parser.lexer.current_line, parser.project)
 }
 
 // We parce a definition line
@@ -102,7 +101,7 @@ func def(parser *Parser) {
 
 }
 
-// statement : HAVE STRING FROM ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) (SEMI | STRING SEMI | STRING (COMMA STRING)* SEMI)
+// statement : HAVE STRING FROM ID ((BRACKET_L BRACKET_R) | (BRACKET_L STRING BRACKET_R) | (BRACKET_L ID (COMMA STRING)* BRACKET_R)) (SEMI | STRING SEMI | STRING (COMMA STRING)* SEMI)
 func statement(parser *Parser) {
 
 	eat(parser, HAVE)
@@ -116,17 +115,16 @@ func statement(parser *Parser) {
 	// get params
 	var params []string
 	eat(parser, BRACKETS_L)
-	fmt.Println("d")
 	for parser.current_token.token_type != BRACKETS_R && parser.is_parsed_successfully{
 
 		if parser.current_token.token_type == COMMA {
 			eat(parser, COMMA)
 			param := parser.current_token.value
-			eat(parser, ID)
+			eat(parser, STRING)
 			params = append(params, param)
 		} else {
 			param := parser.current_token.value
-			eat(parser, ID)
+			eat(parser, STRING)
 			params = append(params, param)
 		}
 	}
@@ -148,7 +146,7 @@ func statement(parser *Parser) {
 	}
 	eat(parser, SEMI)
 	//create statement
-	create_statement(rule_name, conclusion, params, premises, parser.project)
+	create_statement(rule_name, conclusion, params, premises, parser.lexer.current_line, parser.project)
 }
 
 // we parce the whole code that must represent a formal language

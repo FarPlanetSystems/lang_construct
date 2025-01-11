@@ -1,0 +1,26 @@
+rule Arrow_prop (x, y): "[x] be proposition", "[y] be proposition" -> "[x] -> [y] be proposition";
+rule Brackets_prop (x): "[x] be proposition" -> "([x]) be proposition";
+rule Negation_prop (x): "[x] be proposition" -> "-[x] be proposition";
+rule Brackets_neut (x): "[x]" -> "([x])";
+rule Stating_prop (x): "[x]" -> "[x] be proposition";
+rule A1 (x, y): "[x] be proposition", "[y] be proposition" -> "[x] -> ([y] -> [x])";
+rule A2 (x, y, z): "[x] be proposition", "[y] be proposition", "[z] be proposition" -> "([x] -> ([y] -> [z])) -> (([x] -> [y]) -> ([x] -> [z]))";
+rule A3 (x, y): "[x] be proposition", "[y] be proposition" -> "(-x -> -y) -> (y -> x)";
+rule Modus_ponens (x, y): "[y] be proposition", "[x]", "[y] -> [x]" -> "[y]";
+def "A be proposition";
+def "B be proposition";
+
+have "B -> A be proposition" from Arrow_prop ("B", "A") "B be proposition", "A be proposition";
+have "(B -> A) be proposition" from Brackets_prop ("B -> A") "B -> A be proposition";
+have "A -> (B -> A) be proposition" from Arrow_prop ("A", "(B -> A)") "A be proposition", "(B -> A) be proposition";
+
+
+#have "A -> ((B -> A) -> A)" from A1 ("A", "(B -> A)") "A be proposition", "(B -> A) be proposition";
+#have "A -> ((B -> A) -> A) be proposition" from Stating_prop ("A -> ((B -> A) -> A)") "A -> ((B -> A) -> A)";
+#have "(A -> ((B -> A) -> A)) -> ((A -> (B -> A)) -> (A -> A))" from A2 ("A", "(B -> A)", "A") "A be proposition", "(B -> A) be proposition", "A be proposition";
+#have "(A -> ((B -> A) -> A))" from Brackets_neut ("A -> ((B -> A) -> A)") "A -> ((B -> A) -> A)";
+# y = 
+#have "((A -> (B -> A)) -> (A -> A))" from Modus_ponens ("(A -> ((B -> A) -> A))", "((A -> (B -> A)) -> (A -> A))") ;
+@
+Coherence verified!
+

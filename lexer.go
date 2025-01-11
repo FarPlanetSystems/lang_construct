@@ -124,7 +124,7 @@ func skip_spaces(lexer *Lexer){
 
 func read_id(lexer *Lexer) Token {
 	result := ""
-	for lexer.current_char != 0 && (unicode.IsLetter(rune(lexer.current_char)) || unicode.IsDigit(rune(lexer.current_char))){
+	for is_id__char_correct(lexer.current_char){
 		//fmt.Println(string(lexer.current_char))
 		result += string(lexer.current_char)
 		advance(lexer)
@@ -137,6 +137,19 @@ func read_id(lexer *Lexer) Token {
 	}else{
 		return create_Token(ID, result)
 	}
+}
+
+// the function checks if a char can be represented in a id string
+// it gets a char and returns true when it is whether a letter or a digit or an underscore
+// otherwise false
+func is_id__char_correct(id_char byte) bool{
+	if id_char == 0{
+		return false
+	}
+	if unicode.IsLetter(rune(id_char)) || unicode.IsDigit(rune(id_char)) || string(id_char) == "_"{
+		return true
+	}
+	return false
 }
 
 func get_next_token(lexer *Lexer) Token {
