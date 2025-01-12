@@ -149,9 +149,19 @@ func statement(parser *Parser) {
 	create_statement(rule_name, conclusion, params, premises, parser.lexer.current_line, parser.project)
 }
 
+func read_import(parser *Parser){
+	eat(parser, IMPORT)
+	if parser.current_token.token_type == ID{
+	imported_file := parser.current_token.value
+	parser.project.imported_projects_files = append(parser.project.imported_projects_files, imported_file)
+}
+	eat(parser, ID)
+	eat(parser, SEMI)
+}
+
 // we parce the whole code that must represent a formal language
 // see the specification of language construct interpretator
-// language: (RULE | DEF | HAVE | COMMENT | NEW_LINE)* (EOF | REPORT_SECTION)
+// language: (RULE | DEF | HAVE | IMPORT | COMMENT | NEW_LINE)* (EOF | REPORT_SECTION)
 // returns true if code is succefully parced
 func Language(parser *Parser) bool {
 	
@@ -170,6 +180,8 @@ func Language(parser *Parser) bool {
 			eat(parser, NEW_LINE)
 		case COMMENT:
 			eat(parser, COMMENT)
+		case IMPORT:
+			read_import(parser)
 		default:
 			parser.is_parsed_successfully = false
 			message("unexpected expression "+parser.current_token.value+" on the line 1", parser.project)

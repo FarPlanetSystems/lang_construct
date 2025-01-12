@@ -19,6 +19,7 @@ type LC_project struct {
 	is_interpreted_succesfully bool
 	is_coherent bool
 	file_name               string
+	imported_projects_files []string
 }
 
 func create_project(raw_text string, file_name string) *LC_project {
@@ -29,7 +30,7 @@ func create_project(raw_text string, file_name string) *LC_project {
 	res := LC_project{
 		doc_code:                raw_text,
 		is_there_report_section: false,
-		file_name:               curdir + "\\projects\\" + file_name,
+		file_name:               curdir + "\\" + file_name,
 		is_interpreted_succesfully: true,
 		is_coherent: false,
 	}
@@ -53,7 +54,6 @@ func deep_copy_project(old_project LC_project) LC_project {
 }
 
 func main() {
-	os.Mkdir("projects", 0644)
 	for{
 		// we get the file name of a .txt from the terminal
 		file_name := get_file_name() 
@@ -102,7 +102,7 @@ func read_code(file_name string) (string, bool){
 	if err != nil{
 		fmt.Println(err)
 	}
-	file_path := curdir + "\\projects\\" + file_name
+	file_path := curdir + "\\" + file_name
 	_, err = os.Open(file_path)
 	if err != nil{
 		fmt.Println(err)
@@ -121,7 +121,7 @@ func read_code(file_name string) (string, bool){
 }
 
 func get_file_name()string{
-	fmt.Println("please enter the name of the lang construct file in the projects folder: ")
+	fmt.Println("please enter the name of the lang construct file in the current directory: ")
 	reader := bufio.NewReader(os.Stdin)
 	file_name, _ := reader.ReadString('\n')
 	file_name = strings.ReplaceAll(file_name, " ", "")
@@ -167,3 +167,5 @@ func create_definition(definition string, project *LC_project) {
 	project.all_definitions = append(project.all_definitions, definition)
 	project.all_legal_expressions = append(project.all_legal_expressions, definition)
 }
+
+func import_project_to(project_file string, project *LC_project){}

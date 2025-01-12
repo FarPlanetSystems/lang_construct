@@ -11,7 +11,7 @@ type RESERVED_KEYWORD struct
 	token Token
 }
 
-var RESERVED_KEYWORDS = [4] RESERVED_KEYWORD{
+var RESERVED_KEYWORDS = [5] RESERVED_KEYWORD{
 	{
 		keyword: "have",
 		token: Token{
@@ -38,6 +38,13 @@ var RESERVED_KEYWORDS = [4] RESERVED_KEYWORD{
 		token: Token{
 			token_type: FROM,
 			value: "from",
+		},
+	},
+	{
+		keyword: "import",
+		token: Token{
+			token_type: IMPORT,
+			value: "import",
 		},
 	},
 }

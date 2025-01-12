@@ -28,11 +28,9 @@ func create_statement(rule_name string, concusion string, params []string, premi
 
 func verify_statement(statement Statement, project *LC_project) bool{
 	var applied_rule Rule
-	var c int
 	for i := 0; i < len(project.all_rules); i++{
 		if project.all_rules[i].name == statement.rule_name{
 			applied_rule = deep_copy_rule(project.all_rules[i])
-			c = i
 		}
 	}
 	if applied_rule.name == ""{
@@ -47,12 +45,10 @@ func verify_statement(statement Statement, project *LC_project) bool{
 		message("derriving a statement, there must be as many premises as there defined in the applied rule. Line "  + strconv.Itoa(statement.line), project)
 		return false
 	}
-	fmt.Println(project.all_rules[c].premises)
 	if !check_rule_applicability(statement, applied_rule){
 		message("the rule is unapplicable. Line " + strconv.Itoa(statement.line), project)
 		return false
 	}
-	fmt.Println(project.all_rules[c].premises)
 	if !are_premises_verified(statement.premises, *project){
 		message("not all premises are verified. Line " + strconv.Itoa(statement.line), project)
 		return false
@@ -77,14 +73,14 @@ func substitude_rule_with_params(statement Statement, rule Rule) Rule {
 func check_rule_applicability(statement Statement, rule Rule) bool{
 	substituted_rule := substitude_rule_with_params(statement, rule)
 	if substituted_rule.conclusion != statement.conclusion{
-		//fmt.Println(substituted_rule.conclusion)
-		//fmt.Println(statement.conclusion)
+		fmt.Println(substituted_rule.conclusion)
+		fmt.Println(statement.conclusion)
 		return false
 	}
 	for i := 0; i < len(substituted_rule.premises); i++{
 		if substituted_rule.premises[i] != statement.premises[i]{
-			//fmt.Println(substituted_rule.premises[i])
-			//fmt.Println(statement.premises[i])
+			fmt.Println(substituted_rule.premises[i])
+			fmt.Println(statement.premises[i])
 			return false
 		}
 	}
