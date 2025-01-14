@@ -187,7 +187,6 @@ func import_project_to(project_file string, project *LC_project) bool{
 	importing_projects = append(importing_projects, project.project_file_path)
 	
 	for i := 0; i<len(importing_projects); i++{
-		fmt.Println(project_file, importing_projects[i])
 		if project_file == importing_projects[i]{
 			fmt.Println("imported projects cycle. See " + project_file)
 			return false

@@ -40,7 +40,7 @@ func eat(parser *Parser, token_type string) {
 	}
 }
 
-// rule : RULE ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) COLON (STRING | STRING (COMMA STRING)*) ARROW STRING SEMI
+// rule : RULE ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) COLON (STRING | STRING (COMMA STRING)*) ARROW (STRING | (STRING (COMMA STRING)*)) SEMI
 // rule sum_1 (x, y) : "x belong Natural" , "y belong Natural" -> "x + y belong Natural";
 func rule(parser *Parser) {
 	eat(parser, RULE)
@@ -83,11 +83,25 @@ func rule(parser *Parser) {
 		}
 	}
 	eat(parser, ARROW)
-	// get conclusion
-	conclusion := parser.current_token.value
-	eat(parser, STRING)
+	// get conclusions
+	var conclusions []string
+	var conclusion string = ""
+	for parser.current_token.token_type != SEMI && parser.is_parsed_successfully{
+		if parser.current_token.token_type == COMMA {
+			eat(parser, COMMA)
+			conclusion = parser.current_token.value
+			eat(parser, STRING)
+			conclusions = append(conclusions, conclusion)
+
+		} else {
+			conclusion = parser.current_token.value
+			eat(parser, STRING)
+			conclusions = append(conclusions, conclusion)
+		}
+	}
+
 	eat(parser, SEMI)
-	create_rule(rule_name, params, premises, conclusion, parser.lexer.current_line, parser.project)
+	create_rule(rule_name, params, premises, conclusions, parser.lexer.current_line, parser.project)
 }
 
 // We parce a definition line

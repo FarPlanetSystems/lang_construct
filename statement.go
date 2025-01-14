@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -61,10 +60,13 @@ func substitude_rule_with_params(statement Statement, rule Rule) Rule {
 	substituted_rule := rule
 	for i := 0; i<len(substituted_rule.params); i++{
 		consequence := "[" + substituted_rule.params[i] + "]"
+		// replacing params signs in premises of the rule (rule.params) with expressions in statements as arguments (statement.params)
 		for j := 0; j < len(substituted_rule.premises); j++{
 			substituted_rule.premises[j] = strings.Replace(substituted_rule.premises[j], consequence, statement.params[i], -1)
 		}
-		substituted_rule.conclusion = strings.Replace(substituted_rule.conclusion, consequence, statement.params[i], -1)
+		for j := 0; j < len(substituted_rule.conclusions); j++{
+			substituted_rule.conclusions[j] = strings.Replace(substituted_rule.conclusions[j], consequence, statement.params[i], -1)
+		}
 	}
 
 	return substituted_rule
@@ -72,15 +74,21 @@ func substitude_rule_with_params(statement Statement, rule Rule) Rule {
 
 func check_rule_applicability(statement Statement, rule Rule) bool{
 	substituted_rule := substitude_rule_with_params(statement, rule)
-	if substituted_rule.conclusion != statement.conclusion{
-		fmt.Println(substituted_rule.conclusion)
-		fmt.Println(statement.conclusion)
+	// checking if there is correspondece with the statement's conclusion with one of the rule's conclusion
+	correspondece_found := false
+
+	for i := 0; i < len(substituted_rule.conclusions); i++{
+
+		if substituted_rule.conclusions[i] == statement.conclusion{
+			correspondece_found = true
+		}
+	}
+	if !correspondece_found{
 		return false
 	}
+	// checking the correspondence among premises
 	for i := 0; i < len(substituted_rule.premises); i++{
 		if substituted_rule.premises[i] != statement.premises[i]{
-			fmt.Println(substituted_rule.premises[i])
-			fmt.Println(statement.premises[i])
 			return false
 		}
 	}
