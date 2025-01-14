@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strconv"
 )
 
@@ -151,11 +152,16 @@ func statement(parser *Parser) {
 
 func read_import(parser *Parser){
 	eat(parser, IMPORT)
-	if parser.current_token.token_type == ID{
+	if parser.current_token.token_type == STRING{
 	imported_file := parser.current_token.value
-	parser.project.imported_projects_files = append(parser.project.imported_projects_files, imported_file)
+	curdir, err := os.Getwd()
+	if err != nil{
+		message(err.Error(), parser.project)
+	}
+	imported_file_path := curdir + "\\" + imported_file
+	parser.project.imported_projects_file_paths = append(parser.project.imported_projects_file_paths, imported_file_path)
 }
-	eat(parser, ID)
+	eat(parser, STRING)
 	eat(parser, SEMI)
 }
 

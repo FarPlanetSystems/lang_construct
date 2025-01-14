@@ -7,6 +7,9 @@ import (
 	"strings"
 )
 
+//since we can import other projects, we need to be sure that none of them point to the initiate one (we want to prevent cycles)
+//for this purpose we ...
+var importing_projects []string
 
 type LC_project struct {
 	all_rules               []Rule
@@ -18,19 +21,15 @@ type LC_project struct {
 	is_there_report_section bool
 	is_interpreted_succesfully bool
 	is_coherent bool
-	file_name               string
-	imported_projects_files []string
+	project_file_path               string
+	imported_projects_file_paths []string
 }
 
-func create_project(raw_text string, file_name string) *LC_project {
-	curdir, err := os.Getwd()
-	if err != nil{
-		fmt.Println(err)
-	}
+func create_project(raw_text string, file_path string) *LC_project {
 	res := LC_project{
 		doc_code:                raw_text,
 		is_there_report_section: false,
-		file_name:               curdir + "\\" + file_name,
+		project_file_path:               file_path,
 		is_interpreted_succesfully: true,
 		is_coherent: false,
 	}
@@ -40,7 +39,7 @@ func create_project(raw_text string, file_name string) *LC_project {
 func deep_copy_project(old_project LC_project) LC_project {
 	var new_project LC_project
 	new_project.doc_code = old_project.doc_code
-	new_project.file_name = old_project.file_name
+	new_project.project_file_path = old_project.project_file_path
 	new_project.is_coherent = old_project.is_coherent
 	new_project.is_interpreted_succesfully = old_project.is_interpreted_succesfully
 	new_project.is_there_report_section = old_project.is_there_report_section
@@ -56,27 +55,10 @@ func deep_copy_project(old_project LC_project) LC_project {
 func main() {
 	for{
 		// we get the file name of a .txt from the terminal
-		file_name := get_file_name() 
-		interpretation_cycle(file_name)
-		
-	}
-}
+		file_path := get_file_path()
 
-func interpretation_cycle(file_name string){
-	//we get the content of the file of the given name and convert it to string
-	code, is_succesfull := read_code(file_name)
-	if len(code) < 1{
-		is_succesfull = false
-		fmt.Println("cannot run an empty file")
-	}
-	if is_succesfull{
-		project := create_project(code, file_name)
-		//we let the lexer and parser do their work
-		interpret_project(project)
-		//if there is no errors in the code, we start to verify each given statement (lines with HAVE)
-		if project.is_interpreted_succesfully{
-			verify_all_included_statements(project)
-		}
+
+		project := interpretation_cycle(file_path)
 		// if both interpretation and verification appear successful, we send a corresponding message
 		if project.is_interpreted_succesfully && project.is_coherent{
 			message("Coherence verified!", project)
@@ -84,7 +66,35 @@ func interpretation_cycle(file_name string){
 		//we send all saved messages to the file
 		report(*project)
 	}
+}
 
+func interpretation_cycle(file_name string) *LC_project{
+	//we get the content of the file of the given name and convert it to string
+	var project *LC_project
+	
+	code, is_succesfull := read_code(file_name)
+	if len(code) < 1{
+		is_succesfull = false
+		fmt.Println("cannot run an empty file " + file_name)
+	}
+	if is_succesfull{
+		project = create_project(code, file_name)
+		//we let the lexer and parser do their work
+		interpret_project(project)
+		// we import all needed projects
+		for i := 0; i < len(project.imported_projects_file_paths); i++{
+			if !import_project_to(project.imported_projects_file_paths[i], project){
+				var empty_project *LC_project = create_project("", "")
+				return empty_project
+			}
+		}
+		//if there is no errors in the code, we start to verify each given statement (lines with HAVE)
+		if project.is_interpreted_succesfully{
+			verify_all_included_statements(project)
+		}
+		
+	}
+	return project
 }
 
 
@@ -94,16 +104,11 @@ func interpret_project(project *LC_project) {
 	project.is_there_report_section = parser.is_there_report_section
 }
 
-// gets a string representing the name of a txt working file in "projects" folder. 
+// gets a string representing the path of a txt working file in "projects" folder. 
 //if there is such a file, returns its content before "@" symbol converted to string and true.
 //otherwise, an empty string and false
-func read_code(file_name string) (string, bool){
-	curdir, err := os.Getwd()
-	if err != nil{
-		fmt.Println(err)
-	}
-	file_path := curdir + "\\" + file_name
-	_, err = os.Open(file_path)
+func read_code(file_path string) (string, bool){
+	_, err := os.Open(file_path)
 	if err != nil{
 		fmt.Println(err)
 		return "", false
@@ -120,14 +125,22 @@ func read_code(file_name string) (string, bool){
 	return code, true
 }
 
-func get_file_name()string{
+func get_file_path()string{
+	// get file name
 	fmt.Println("please enter the name of the lang construct file in the current directory: ")
 	reader := bufio.NewReader(os.Stdin)
 	file_name, _ := reader.ReadString('\n')
+	// parsing
 	file_name = strings.ReplaceAll(file_name, " ", "")
 	file_name = strings.ReplaceAll(file_name, "\n", "")
 	file_name = strings.ReplaceAll(file_name, "\r", "")
-	return file_name
+	// creating the path
+	curdir, err := os.Getwd()
+	if err != nil{
+		fmt.Println(err)
+	}
+	file_path:= curdir + "\\" + file_name
+	return file_path
 }
 
 func verify_all_included_statements(project *LC_project){
@@ -147,7 +160,7 @@ func message(message_line string, project *LC_project) {
 }
 
 func report(project LC_project){
-	os.OpenFile(project.file_name, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	os.OpenFile(project.project_file_path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	new_doc_line := project.doc_code
 	if !project.is_there_report_section {
 		new_doc_line = project.doc_code + "@\n"
@@ -156,8 +169,8 @@ func report(project LC_project){
 		new_doc_line += project.reports[i]
 		new_doc_line += "\n"
 	}
-	os.Truncate(project.file_name, 0)
-	i := os.WriteFile(project.file_name, []byte(new_doc_line), 0644)
+	os.Truncate(project.project_file_path, 0)
+	i := os.WriteFile(project.project_file_path, []byte(new_doc_line), 0644)
 	if i != nil{
 		fmt.Println(i)
 	}
@@ -167,5 +180,28 @@ func create_definition(definition string, project *LC_project) {
 	project.all_definitions = append(project.all_definitions, definition)
 	project.all_legal_expressions = append(project.all_legal_expressions, definition)
 }
-
-func import_project_to(project_file string, project *LC_project){}
+// reads and interpret the code in file named project_file.
+// if both reading and interpretation run successfully, ads all rules and legal expressions from read project to the one given in params and returns true
+// otherwise returns false
+func import_project_to(project_file string, project *LC_project) bool{
+	importing_projects = append(importing_projects, project.project_file_path)
+	
+	for i := 0; i<len(importing_projects); i++{
+		fmt.Println(project_file, importing_projects[i])
+		if project_file == importing_projects[i]{
+			fmt.Println("imported projects cycle. See " + project_file)
+			return false
+		}
+	}
+	// we read and interpret the imported project as we do with the initiate one
+	new_project := interpretation_cycle(project_file)
+	// we add all rules and legal expressions from one to another
+	if new_project.is_interpreted_succesfully && new_project.is_coherent{
+		project.all_legal_expressions = append(project.all_legal_expressions, new_project.all_legal_expressions...)
+		project.all_rules = append(project.all_rules, new_project.all_rules...)
+		return true
+	}else{
+		fmt.Println("could not interpret project in file "+ project_file+". Run it separatly to fix all occured errors")
+		return false
+	}
+}
