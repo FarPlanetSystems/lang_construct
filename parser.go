@@ -47,6 +47,11 @@ func rule(parser *Parser) {
 	// get the name
 	rule_name := parser.current_token.value
 	eat(parser, ID)
+	if find_id_in_project(rule_name, *parser.project){
+		parser.is_parsed_successfully = false
+		message("id " + rule_name +" already used. Line"+ strconv.Itoa(parser.lexer.current_line), parser.project)
+		return
+	}
 	//get params
 	var params []string
 	eat(parser, BRACKETS_L)
@@ -63,8 +68,17 @@ func rule(parser *Parser) {
 		}
 	}
 	eat(parser, BRACKETS_R)
-	
 
+	// check if each parameter has a unique id
+	for i := 0; i< len(params); i++{
+		for j:= i + 1; j < len(params); j++{
+			if params[i] == params[j]{
+				parser.is_parsed_successfully = false
+				message("several params have the same identifier. Line " + strconv.Itoa(parser.lexer.current_line), parser.project)
+				return
+			}
+		} 
+	}
 	// get premises
 	var premises []string
 	if parser.current_token.token_type != ARROW{
@@ -102,6 +116,7 @@ func rule(parser *Parser) {
 
 	eat(parser, SEMI)
 	create_rule(rule_name, params, premises, conclusions, parser.lexer.current_line, parser.project)
+	
 }
 
 // We parce a definition line

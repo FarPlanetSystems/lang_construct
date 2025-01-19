@@ -51,6 +51,17 @@ func deep_copy_project(old_project LC_project) LC_project {
 	new_project.reports = append(new_project.reports, old_project.reports...)
 	return new_project
 }
+// gets a string representing an id and a LC_project where we want to find it
+// it checks all rules and compares the given id with their names
+// if any matches are present, returns true; otherwise - false
+func find_id_in_project(id string, project LC_project) bool{
+	for i := 0; i < len(project.all_rules); i++{
+		if id == project.all_rules[i].name{
+			return true
+		}
+	}
+	return false
+}
 
 func main() {
 	for{
@@ -127,7 +138,7 @@ func read_code(file_path string) (string, bool){
 
 func get_file_path()string{
 	// get file name
-	fmt.Println("please enter the name of the lang construct file in the current directory: ")
+	fmt.Println("please enter the name of the lang_construct file in the current directory: ")
 	reader := bufio.NewReader(os.Stdin)
 	file_name, _ := reader.ReadString('\n')
 	// parsing

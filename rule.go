@@ -24,7 +24,7 @@ func deep_copy_rule(old_rule Rule) Rule {
 	var new_rule Rule
 	new_rule.name = old_rule.name
 	new_rule.line = old_rule.line
-	new_rule.conclusions = old_rule.conclusions
+	new_rule.conclusions = append(new_rule.conclusions, old_rule.conclusions...)
 
 	new_rule.params = append(new_rule.params, old_rule.params...)
 	new_rule.premises = append(new_rule.premises, old_rule.premises...)

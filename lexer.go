@@ -139,11 +139,9 @@ func read_id(lexer *Lexer) Token {
 	index := find_reserved_word(result)
 
 	if index != -1{
-		
-		return RESERVED_KEYWORDS[index].token
-	}else{
-		return create_Token(ID, result)
+	return RESERVED_KEYWORDS[index].token
 	}
+	return create_Token(ID, result)
 }
 
 // the function checks if a char can be represented in a id string

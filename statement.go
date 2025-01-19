@@ -44,8 +44,8 @@ func verify_statement(statement Statement, project *LC_project) bool{
 		message("derriving a statement, there must be as many premises as there defined in the applied rule. Line "  + strconv.Itoa(statement.line), project)
 		return false
 	}
-	if !check_rule_applicability(statement, applied_rule){
-		message("the rule is unapplicable. Line " + strconv.Itoa(statement.line), project)
+	if !check_rule_applicability(statement, applied_rule, project){
+		//message("the rule is unapplicable. Line " + strconv.Itoa(statement.line), project)
 		return false
 	}
 	if !are_premises_verified(statement.premises, *project){
@@ -72,7 +72,7 @@ func substitude_rule_with_params(statement Statement, rule Rule) Rule {
 	return substituted_rule
 }
 
-func check_rule_applicability(statement Statement, rule Rule) bool{
+func check_rule_applicability(statement Statement, rule Rule, project *LC_project) bool{
 	substituted_rule := substitude_rule_with_params(statement, rule)
 	// checking if there is correspondece with the statement's conclusion with one of the rule's conclusion
 	correspondece_found := false
@@ -84,11 +84,19 @@ func check_rule_applicability(statement Statement, rule Rule) bool{
 		}
 	}
 	if !correspondece_found{
+		msg_line := "conclusion "+ statement.conclusion + " does not correspond to any conclusion of the rule " + substituted_rule.name + ". Line " + strconv.Itoa(statement.line) + "\n See:"
+		message(msg_line, project)
+		for i := 0; i<len(substituted_rule.conclusions); i++{
+			message(substituted_rule.conclusions[i], project)
+		}
 		return false
 	}
 	// checking the correspondence among premises
 	for i := 0; i < len(substituted_rule.premises); i++{
 		if substituted_rule.premises[i] != statement.premises[i]{
+			msg_line := "a premise "+ statement.conclusion + " does not correspond to the required one " + substituted_rule.name + ". Line " + strconv.Itoa(statement.line) + "\n See:"
+			message(msg_line, project)
+			message(substituted_rule.premises[i] + " was expected, but " + statement.premises[i] + " was found", project)
 			return false
 		}
 	}
