@@ -22,7 +22,7 @@ go install github.com/FarPlanetSystems/lang_construct
 ```
 def "A be statement";
 rule exMiddle (x): "[x] be statement" -> "[x] or not [x]";
-have "A or not A" from exMiddle (A) "A be statement";
+have "A or not A" from exMiddle ("A") "A be statement";
 ```
 
 - enter the name of the file in the command line
@@ -31,7 +31,7 @@ have "A or not A" from exMiddle (A) "A be statement";
 ```
 def "A be statement";
 rule exMiddle (x): "[x] be statement" -> "[x] or not [x]";
-have "A or not A" from exMiddle (A) "A be statement";
+have "A or not A" from exMiddle ("A") "A be statement";
 
 @
 Coherence verified!
