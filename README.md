@@ -15,8 +15,8 @@ go install github.com/FarPlanetSystems/lang_construct
 
 ## Usage
 
-- run lang_construct.
-- create a plain text file, for example test.txt.
+- run lang_construct
+- create a plain text file, for example test.txt
 - write some code:
 
 ```
