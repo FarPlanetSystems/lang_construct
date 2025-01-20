@@ -25,8 +25,6 @@ func create_Parser(lexer *Lexer, project *LC_project) *Parser {
 }
 
 func eat(parser *Parser, token_type string) {
-	//fmt.Println("given: \n" + parser.current_token.token_type)
-	//fmt.Println("expected: \n" + token_type)
 	if parser.current_token.token_type == token_type {
 		parser.current_token = get_next_token(parser.lexer)
 		if parser.current_token.token_type == UNEXPECTED_SYMBOL {
@@ -41,7 +39,7 @@ func eat(parser *Parser, token_type string) {
 }
 
 // rule : RULE ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) COLON (STRING | STRING (COMMA STRING)*) ARROW (STRING | (STRING (COMMA STRING)*)) SEMI
-// rule sum_1 (x, y) : "x belong Natural" , "y belong Natural" -> "x + y belong Natural";
+// Example: rule sum_1 (x, y) : "x belong Natural" , "y belong Natural" -> "x + y belong Natural";
 func rule(parser *Parser) {
 	eat(parser, RULE)
 	// get the name
@@ -120,7 +118,7 @@ func rule(parser *Parser) {
 }
 
 // We parce a definition line
-// def : DEF STRING SEMICOLON
+// def : DEF STRING SEMI
 // Example: def "one belong Natural";
 func def(parser *Parser) {
 	eat(parser, DEF)
