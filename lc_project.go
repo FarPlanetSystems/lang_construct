@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -50,9 +49,7 @@ func find_id_in_project(id string, project LC_project) bool{
 }
 
 func main() {
-	for{
-		run()	
-	}
+	run()	
 }
 func run(){
 	// we get the file name of a .txt from the terminal
@@ -147,10 +144,7 @@ func read_code(file_path string) (string, error){
 }
 
 func get_file_path()(string, error){
-	// get file name
-	fmt.Println("please enter the name of the lang_construct file in the current directory: ")
-	reader := bufio.NewReader(os.Stdin)
-	file_name, _ := reader.ReadString('\n')
+	file_name := os.Args[1];
 	// parsing
 	file_name = strings.ReplaceAll(file_name, " ", "")
 	file_name = strings.ReplaceAll(file_name, "\n", "")

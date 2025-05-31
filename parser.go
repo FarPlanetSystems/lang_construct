@@ -38,7 +38,7 @@ func eat(parser *Parser, token_type string) {
 	}
 }
 
-// rule : RULE ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) COLON (STRING | STRING (COMMA STRING)*) ARROW (STRING | (STRING (COMMA STRING)*)) SEMI
+// rule : RULE ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) | | (BRACKET_L $any BRACKET_R) COLON (STRING | STRING (COMMA STRING)*) ARROW (STRING | (STRING (COMMA STRING)*)) SEMI
 // Example: rule sum_1 (x, y) : "x belong Natural" , "y belong Natural" -> "x + y belong Natural";
 func rule(parser *Parser) {
 	eat(parser, RULE)
@@ -52,18 +52,33 @@ func rule(parser *Parser) {
 	}
 	//get params
 	var params []string
+	var any_params bool = false
 	eat(parser, BRACKETS_L)
 	for parser.current_token.token_type != BRACKETS_R && parser.is_parsed_successfully{
-		if parser.current_token.token_type == COMMA {
+		switch parser.current_token.token_type {
+		case COMMA:
 			eat(parser, COMMA)
 			param := parser.current_token.value
 			eat(parser, ID)
 			params = append(params, param)
-		} else {
+			break
+		case ID:
 			param := parser.current_token.value
 			eat(parser, ID)
 			params = append(params, param)
+		case ANY:
+			any_params = true
+			eat(parser, ANY)
+		default:
+			parser.is_parsed_successfully = false
+			message("invalid syntaxis: " + parser.current_token.token_type + " was found, but identificator or $any was expected. Line " + strconv.Itoa(parser.lexer.current_line), parser.project)
+			return
 		}
+	}
+	if len(params) != 0 && any_params == true{
+		parser.is_parsed_successfully = false
+		message("cannot use $any and parameters at the same time. Line " + strconv.Itoa(parser.lexer.current_line), parser.project)
+		return
 	}
 	eat(parser, BRACKETS_R)
 
@@ -78,21 +93,35 @@ func rule(parser *Parser) {
 		} 
 	}
 	// get premises
+	var any_premises bool = false
 	var premises []string
 	if parser.current_token.token_type != ARROW{
 		eat(parser, COLON)
 		for parser.current_token.token_type != ARROW && parser.is_parsed_successfully{
-			if parser.current_token.token_type == COMMA {
-				eat(parser, COMMA)
-				premise := parser.current_token.value
-				eat(parser, STRING)
-				premises = append(premises, premise)
-			} else {
-				premise := parser.current_token.value
-				eat(parser, STRING)
-				premises = append(premises, premise)
+			switch parser.current_token.token_type {
+				case COMMA:
+					eat(parser, COMMA)
+					premise := parser.current_token.value
+					eat(parser, STRING)
+					premises = append(premises, premise)
+				case STRING:
+					premise := parser.current_token.value
+					eat(parser, STRING)
+					premises = append(premises, premise)
+				case ANY:
+					any_premises = true
+					eat(parser, ANY)
+				default:
+					parser.is_parsed_successfully = false
+					message("invalid syntaxis: " + parser.current_token.token_type + " was found, but string or $any was expected. Line " + strconv.Itoa(parser.lexer.current_line), parser.project)
+					return
 			}
 		}
+	}
+	if len(premises) != 0 && any_premises == true{
+		parser.is_parsed_successfully = false
+		message("cannot use $any and premises at the same time. Line " + strconv.Itoa(parser.lexer.current_line), parser.project)
+		return
 	}
 	eat(parser, ARROW)
 	// get conclusions
@@ -113,7 +142,7 @@ func rule(parser *Parser) {
 	}
 
 	eat(parser, SEMI)
-	create_rule(rule_name, params, premises, conclusions, parser.lexer.current_line, parser.project)
+	create_rule(rule_name, params, premises, conclusions, parser.lexer.current_line, any_params, any_premises, parser.project)
 	
 }
 

@@ -24,6 +24,7 @@ const CURL_BRACKETS_R = "CURL_BRACKETS_R"
 const CURL_BRACKETS_L = "CURL_BRACKETS_L"
 const SQ_BRACKEtS_R = "SQ_BRACKETS_R"
 const SQ_BRACKETS_L = "SQ_BRACKETS_R"
+const ANY = "ANY"
 const EOF = "EOF"
 
 type Token struct{

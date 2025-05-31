@@ -51,12 +51,13 @@ func verify_statement(statement Statement, project *LC_project) bool{
 		return false
 	}
 	// if the number of params in applied_rule is not equal to that in present_statement, we message an error and return false
-	if len(applied_rule.params) != len(present_statement.params) {
+	// However, if applied_rule.are_any_params is true, we do not check the number of params
+	if len(applied_rule.params) != len(present_statement.params) && !applied_rule.are_any_params {
 		message("derriving a statement, there must be as many parameters as there defined in the applied rule. Line "  + strconv.Itoa(present_statement.line), project)
 		return false
 	}
 	// if the number of premises given in applied_rule is not equal to that in present_statement, we try to find any sound premises that could replace the initiate ones
-	if len(applied_rule.premises) != len(present_statement.premises) {
+	if len(applied_rule.premises) != len(present_statement.premises) && !applied_rule.are_any_premisses {
 		
 		sound_premises := find_sound_premises(applied_rule, present_statement, project)
 		if len(sound_premises) > 0{
@@ -65,7 +66,7 @@ func verify_statement(statement Statement, project *LC_project) bool{
 		// if there no such premises we message an error and return false
 		message("derriving a statement, there must be as many premises as there defined in the applied rule. Line "  + strconv.Itoa(present_statement.line), project)
 		return false
-	}
+		}
 	}
 	if !check_rule_applicability(present_statement, applied_rule, project){
 		return false

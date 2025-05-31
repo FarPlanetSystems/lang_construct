@@ -97,6 +97,21 @@ func peek(lexer *Lexer) byte {
 	}
 }
 
+func peek_string(lexer *Lexer, steps int) string {
+	peek_pos := lexer.pos
+	res:=""
+	for i := 0; i < steps; i++ {
+		peek_pos += 1
+		if peek_pos > len(lexer.text)-1 {
+		return ""
+	} else {
+		res += string(lexer.text[peek_pos])
+	}
+	}
+	return res
+	
+}
+
 func read_string(lexer *Lexer) string {
 
 	res := ""
@@ -190,6 +205,17 @@ func get_next_token(lexer *Lexer) Token {
 		case byte(')'):
 			advance(lexer)
 			return create_Token(BRACKETS_R, ")")
+		case byte('$'):
+			if peek_string(lexer, 3) == "any"{
+				advance(lexer)
+				advance(lexer)
+				advance(lexer)
+				advance(lexer)
+				return create_Token(ANY, "$any")
+			}else{
+				message("Unexpected symbol: $any was expected. line" + strconv.Itoa(lexer.current_line), lexer.project)
+				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
+			}
 		case byte (':'): // premises intro
 			advance(lexer)
 			return create_Token(COLON, ":")
