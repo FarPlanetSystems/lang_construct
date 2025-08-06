@@ -9,11 +9,11 @@ import (
 //since we can import other projects, we need to be sure that none of them point to the initiate one (we want to prevent cycles)
 //for this purpose we create an array containing the initiate projects, and then add all imported projects, that import other projects
 //if at the moment of importation the project we import is already contained in the array, then a cycle is present
-var importing_projects []*LC_project
+var importing_projects []*Project
 
-type LC_project struct {
+type Project struct {
 	all_rules               []Rule
-	all_statements          []Statement
+	all_statements          []Proposition
 	all_definitions         []string
 	all_legal_expressions   []string
 	reports []string
@@ -25,9 +25,9 @@ type LC_project struct {
 	imported_projects_file_paths []string
 }
 
-func create_project(raw_text string, file_path string) *LC_project {
+func create_project(raw_text string, file_path string) *Project {
 	
-	res := LC_project{
+	res := Project{
 		doc_code:                raw_text,
 		is_there_report_section: false,
 		project_file_path:               file_path,
@@ -39,7 +39,7 @@ func create_project(raw_text string, file_path string) *LC_project {
 // gets a string representing an id and a LC_project where we want to find it
 // it checks all rules and compares the given id with their names
 // if any matches are present, returns true; otherwise - false
-func find_id_in_project(id string, project LC_project) bool{
+func find_id_in_project(id string, project Project) bool{
 	for i := 0; i < len(project.all_rules); i++{
 		if id == project.all_rules[i].name{
 			return true
@@ -84,7 +84,7 @@ func run(){
 }
 // interprete and verify given project
 // in case everything went fine returns true, otherwise false
-func interpretation_cycle(project *LC_project) bool{
+func interpretation_cycle(project *Project) bool{
 
 		//we let the lexer and parser do their work
 		interpret_project(project)
@@ -117,7 +117,7 @@ func interpretation_cycle(project *LC_project) bool{
 }
 
 
-func interpret_project(project *LC_project) {
+func interpret_project(project *Project) {
 	parser := create_Parser(create_Lexer(project.doc_code, project), project)
 	project.is_interpreted_succesfully = Language(parser)
 	project.is_there_report_section = parser.is_there_report_section
@@ -155,9 +155,9 @@ func get_file_path()(string, error){
 	return file_path, err
 }
 
-func verify_all_included_statements(project *LC_project){
+func verify_all_included_statements(project *Project){
 	for i := 0; i < len(project.all_statements); i++ {
-		is_verified := verify_statement(project.all_statements[i], project)
+		is_verified := verify_proposition(project.all_statements[i], project)
 		if !is_verified {
 			project.is_coherent = false
 			return
@@ -167,14 +167,14 @@ func verify_all_included_statements(project *LC_project){
 }
 
 
-func create_definition(definition string, project *LC_project) {
+func create_definition(definition string, project *Project) {
 	project.all_definitions = append(project.all_definitions, definition)
 	project.all_legal_expressions = append(project.all_legal_expressions, definition)
 }
 // reads and interpret the code in file named project_file.
 // if both reading and interpretation run successfully, ads all rules and legal expressions from read project to the one given in params and returns true
 // otherwise returns false
-func import_project(project_from *LC_project, project_to *LC_project) bool{
+func import_project(project_from *Project, project_to *Project) bool{
 	importing_projects = append(importing_projects, project_to)
 	
 	// check importation cylcing
@@ -197,12 +197,12 @@ func import_project(project_from *LC_project, project_to *LC_project) bool{
 	}
 }
 
-func message(message_line string, project *LC_project) {
+func message(message_line string, project *Project) {
 	message_line = message_line + "\n"
 	project.reports = append(project.reports, message_line)
 }
 
-func report(project LC_project){
+func report(project Project){
 	os.OpenFile(project.project_file_path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	new_doc_line := project.doc_code
 	if !project.is_there_report_section {

@@ -65,10 +65,10 @@ type Lexer struct {
 	pos          int
 	current_char byte
 	current_line int
-	project *LC_project
+	project *Project
 }
 
-func create_Lexer(text string, project *LC_project) *Lexer {
+func create_Lexer(text string, project *Project) *Lexer {
 	res := Lexer{
 		text:         text,
 		pos:          0,

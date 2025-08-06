@@ -8,12 +8,12 @@ import (
 type Parser struct {
 	lexer                   *Lexer
 	current_token           Token
-	project                 *LC_project
+	project                 *Project
 	is_there_report_section bool
 	is_parsed_successfully  bool
 }
 
-func create_Parser(lexer *Lexer, project *LC_project) *Parser {
+func create_Parser(lexer *Lexer, project *Project) *Parser {
 	res := Parser{
 		lexer:                   lexer,
 		current_token:           get_next_token(lexer),
@@ -203,7 +203,7 @@ func statement(parser *Parser) {
 	}
 	eat(parser, SEMI)
 	//create statement
-	create_statement(rule_name, conclusion, params, premises, parser.lexer.current_line, parser.project)
+	create_proposition(rule_name, conclusion, params, premises, parser.lexer.current_line, parser.project)
 }
 
 func read_import(parser *Parser){

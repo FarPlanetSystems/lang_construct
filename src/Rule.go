@@ -10,7 +10,7 @@ type Rule struct {
 	line        int
 }
 
-func create_rule(name string, params []string, premises []string, conclusions []string, line int, any_params bool, any_premisses bool, project *LC_project) Rule {
+func create_rule(name string, params []string, premises []string, conclusions []string, line int, any_params bool, any_premisses bool, project *Project) Rule {
 	res := Rule{
 		name:        name,
 		premises:    premises,
