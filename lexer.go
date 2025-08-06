@@ -205,7 +205,16 @@ func get_next_token(lexer *Lexer) Token {
 		case byte(')'):
 			advance(lexer)
 			return create_Token(BRACKETS_R, ")")
-		case byte('$'):
+		case byte ('{'):
+			advance(lexer)
+			return create_Token(CURL_BRACKETS_L, "{")
+		case byte('}'):
+			advance(lexer)
+			return create_Token(CURL_BRACKETS_R, "}")
+		case byte('*'): //order
+			advance(lexer)
+			return create_Token(ORDER_SIGN, "*")
+		case byte('$'): // $any flag
 			if peek_string(lexer, 3) == "any"{
 				advance(lexer)
 				advance(lexer)

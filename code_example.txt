@@ -6,12 +6,7 @@ def "one belong Natural";
 rule two_as_natural($any) -> "two belong Natural";
 
 rule equiv (x) : $any -> "[x] = [x]";
-rule sum1 (x, y) : "[x] belong Natural" , "[y] belong Natural" -> "[x] + [y] belong Natural";
-
-have "one = one" from equiv ("one") "one belong Natural";
-have "one + one belong Natural" from sum1 ("one", "one") "one belong Natural" , "one belong Natural";
-
-have "two belong Natural" from two_as_natural("vv");
+have "1 = 1" from equiv("1");
 @
 Coherence verified!
 

@@ -2,15 +2,15 @@ package main
 
 type Rule struct {
 	name        string
-	premises    []string
+	premises    []Argument
 	params      []string
-	conclusions []string
+	conclusions []Argument
 	are_any_premisses bool
 	are_any_params bool
 	line        int
 }
 
-func create_rule(name string, params []string, premises []string, conclusions []string, line int, any_params bool, any_premisses bool, project *LC_project) Rule {
+func createRule(name string, params []string, premises []Argument, conclusions []Argument, line int, any_params bool, any_premisses bool) Rule {
 	res := Rule{
 		name:        name,
 		premises:    premises,
@@ -20,21 +20,112 @@ func create_rule(name string, params []string, premises []string, conclusions []
 		are_any_premisses: any_premisses,
 		are_any_params: any_params,
 	}
-	project.all_rules = append(project.all_rules, res)
 	return res
 }
 
-func deep_copy_rule(old_rule Rule) Rule {
-	var new_rule Rule
-	new_rule.name = old_rule.name
-	new_rule.line = old_rule.line
-	new_rule.conclusions = append(new_rule.conclusions, old_rule.conclusions...)
+func deepCopyRule(oldRule Rule) Rule {
+	var newRule Rule
+	newRule.name = oldRule.name
+	newRule.line = oldRule.line
+	newRule.conclusions = append(newRule.conclusions, oldRule.conclusions...)
 
-	new_rule.params = append(new_rule.params, old_rule.params...)
-	new_rule.premises = append(new_rule.premises, old_rule.premises...)
+	newRule.params = append(newRule.params, oldRule.params...)
+	newRule.premises = append(newRule.premises, oldRule.premises...)
 
-	new_rule.are_any_premisses = old_rule.are_any_premisses
-	new_rule.are_any_params = old_rule.are_any_params
+	newRule.are_any_premisses = oldRule.are_any_premisses
+	newRule.are_any_params = oldRule.are_any_params
 
-	return new_rule
+	return newRule
+}
+
+func compareRule(rule1 Rule, rule2 Rule) bool {
+	if !rule1.are_any_params && !rule2.are_any_params{
+		if len(rule1.params) != len(rule2.params){
+			return false
+		}
+	}
+	
+	if !rule1.are_any_premisses && !rule2.are_any_premisses{
+		for i:=0; i< len(rule1.premises); i++{
+			var match bool = false
+			for j:=0; j<len(rule2.premises); j++{
+				if compareArguments(rule1.premises[i], rule2.premises[j]){
+					match = true
+					break
+				}
+			}
+			if !match {return false}
+		} 
+	}
+
+	for i:=0; i< len(rule1.conclusions); i++{
+			var match bool = false
+			for j:=0; j<len(rule2.conclusions); j++{
+				if compareArguments(rule1.conclusions[i], rule2.conclusions[j]){
+					match = true
+					break
+				}
+			}
+			if !match {return false}
+		} 
+	return true
+}
+
+
+func (rule Rule) ToString() string {
+	res := rule.name
+	res += convertRuleParamsToString(rule)
+	res += " :"
+	res += convertRulePremisesToString(rule)
+	res += " -> "
+	res += convertRuleConclusionToString(rule)
+	return res
+}
+
+func convertRuleParamsToString(rule Rule) string{
+	res := "("
+	if len(rule.params) > 0{
+	for i, param := range rule.params {
+			res += param
+			if i < len(rule.params)-1 {
+				res += ", "
+			}
+		}
+	}
+	res += ")"
+	return res
+}
+
+func convertRulePremisesToString(rule Rule) string{
+	res := ""
+	if len(rule.premises) > 0 {
+		for i, premise := range rule.premises {
+			if premise.argument_type == PROPOSITIONAL_ARGUMENT_TYPE{
+				res += premise.propositional_value
+			}else{
+				res += premise.rule_value.ToString()
+			}
+			if i < len(rule.premises)-1 {
+				res += ", "
+			}
+		}
+	}
+	return res
+}
+
+func convertRuleConclusionToString(rule Rule) string{
+	res := ""
+	if len(rule.conclusions) > 0 {
+		for i, conclusion := range rule.conclusions {
+			if conclusion.argument_type == PROPOSITIONAL_ARGUMENT_TYPE{
+				res += conclusion.propositional_value
+			}else{
+				res += conclusion.rule_value.ToString()
+			}
+			if i < len(rule.conclusions)-1 {
+				res += ", "
+			}
+		}
+	}
+	return res
 }

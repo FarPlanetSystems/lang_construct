@@ -15,7 +15,7 @@ type LC_project struct {
 	all_rules               []Rule
 	all_statements          []Statement
 	all_definitions         []string
-	all_legal_expressions   []string
+	all_legal_expressions   []Argument
 	reports []string
 	doc_code                string
 	is_there_report_section bool
@@ -25,12 +25,12 @@ type LC_project struct {
 	imported_projects_file_paths []string
 }
 
-func create_project(raw_text string, file_path string) *LC_project {
+func createProject(rawText string, filePath string) *LC_project {
 	
 	res := LC_project{
-		doc_code:                raw_text,
+		doc_code:                rawText,
 		is_there_report_section: false,
-		project_file_path:               file_path,
+		project_file_path:               filePath,
 		is_interpreted_succesfully: true,
 		is_coherent: false,
 	}
@@ -39,7 +39,7 @@ func create_project(raw_text string, file_path string) *LC_project {
 // gets a string representing an id and a LC_project where we want to find it
 // it checks all rules and compares the given id with their names
 // if any matches are present, returns true; otherwise - false
-func find_id_in_project(id string, project LC_project) bool{
+func findIdInProject(id string, project LC_project) bool{
 	for i := 0; i < len(project.all_rules); i++{
 		if id == project.all_rules[i].name{
 			return true
@@ -71,7 +71,7 @@ func run(){
 		fmt.Println("cannot run an empty file " + file_path)
 		return
 	}
-	project := create_project(code, file_path)
+	project := createProject(code, file_path)
 	
 	correct := interpretation_cycle(project)
 	// if both interpretation and verification appear successful, we send a corresponding message
@@ -103,9 +103,9 @@ func interpretation_cycle(project *LC_project) bool{
 				fmt.Println("cannot run an empty file " + project.imported_projects_file_paths[i])
 				return false
 			}
-			imported_project := create_project(code, project.imported_projects_file_paths[i])
+			imported_project := createProject(code, project.imported_projects_file_paths[i])
 			
-			if !import_project(imported_project, project){
+			if !importProject(imported_project, project){
 				return false
 			}
 		}
@@ -118,7 +118,7 @@ func interpretation_cycle(project *LC_project) bool{
 
 
 func interpret_project(project *LC_project) {
-	parser := create_Parser(create_Lexer(project.doc_code, project), project)
+	parser := createParser(create_Lexer(project.doc_code, project), project)
 	project.is_interpreted_succesfully = Language(parser)
 	project.is_there_report_section = parser.is_there_report_section
 }
@@ -146,7 +146,6 @@ func read_code(file_path string) (string, error){
 func get_file_path()(string, error){
 	file_name := os.Args[1];
 	// parsing
-	file_name = strings.ReplaceAll(file_name, " ", "")
 	file_name = strings.ReplaceAll(file_name, "\n", "")
 	file_name = strings.ReplaceAll(file_name, "\r", "")
 	// creating the path
@@ -157,7 +156,7 @@ func get_file_path()(string, error){
 
 func verify_all_included_statements(project *LC_project){
 	for i := 0; i < len(project.all_statements); i++ {
-		is_verified := verify_statement(project.all_statements[i], project)
+		is_verified := verifyStatement(project.all_statements[i], project)
 		if !is_verified {
 			project.is_coherent = false
 			return
@@ -167,14 +166,21 @@ func verify_all_included_statements(project *LC_project){
 }
 
 
-func create_definition(definition string, project *LC_project) {
+func appendDefinition(definition string, project *LC_project) {
 	project.all_definitions = append(project.all_definitions, definition)
-	project.all_legal_expressions = append(project.all_legal_expressions, definition)
+	propositionalArgument := createArgument(PROPOSITIONAL_ARGUMENT_TYPE, definition, Rule{})
+	project.all_legal_expressions = append(project.all_legal_expressions, propositionalArgument)
 }
+func appendRule(rule Rule, project *LC_project){
+	project.all_rules = append(project.all_rules, rule)
+	ruleArgument := createArgument(RULE_ARGUMENT_TYPE, "", rule)
+	project.all_legal_expressions = append(project.all_legal_expressions, ruleArgument)
+}
+
 // reads and interpret the code in file named project_file.
 // if both reading and interpretation run successfully, ads all rules and legal expressions from read project to the one given in params and returns true
 // otherwise returns false
-func import_project(project_from *LC_project, project_to *LC_project) bool{
+func importProject(project_from *LC_project, project_to *LC_project) bool{
 	importing_projects = append(importing_projects, project_to)
 	
 	// check importation cylcing
