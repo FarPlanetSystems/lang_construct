@@ -1,6 +1,6 @@
 package main
 
-//Token types
+// Token types
 const STRING = "STRING"
 
 const ARROW = "ARROW"
@@ -8,7 +8,7 @@ const COLON = "COLON"
 const COMMA = "COMMA"
 const DOT = "DOT"
 const NEW_LINE = "NEW_LINE"
-const SEMI = "SEMI"
+const SEMI_COLON = "SEMI_COLON"
 const FROM = "FROM"
 const UNEXPECTED_SYMBOL = "UNEXPECTED_SYMBOL"
 const COMMENT = "COMMENT"
@@ -16,6 +16,8 @@ const ID = "ID"
 const HAVE = "HAVE"
 const RULE = "RULE"
 const DEF = "DEF"
+const IF = "IF"
+const SPEC = "SPEC"
 const IMPORT = "IMPORT"
 const REPORT_SECTION = "REPORT_SECTION"
 const BRACKETS_R = "BRACKETS_R"
@@ -27,16 +29,15 @@ const SQ_BRACKETS_L = "SQ_BRACKETS_R"
 const ANY = "ANY"
 const EOF = "EOF"
 
-type Token struct{
+type Token struct {
 	token_type string
-	value string 
+	value      string
 }
 
-func create_Token(token_type string, value string) Token{
+func create_Token(token_type string, value string) Token {
 	res := Token{
 		token_type: token_type,
-		value: value,
-	}	
+		value:      value,
+	}
 	return res
 }
-

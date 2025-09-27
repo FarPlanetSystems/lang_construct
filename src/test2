@@ -1,0 +1,23 @@
+#LOGIC
+
+rule equality_elum(a, b, stringl, stringr): "[a] = [b]", "[a] is object", "[b] is object" -> "[stringl][b][stringr]";
+
+
+#MATH
+
+rule comm (x, y): "natural([x])", "natural[y]" -> "equal([x] + [y], [y] + [x])";
+rule equiv (x) -> "[x] = [x]";
+rule sum1 (x, y) : "natural([x])" , "natural([y])" -> "natural([x] + [y])";
+def "natrual(0)";
+def "natural(1)";
+rule add_ident (x) : "natural([x])" -> "equal(0 + [x], [x])";
+rule mult_ident (x): "natural([x])" -> "equal(1 * [x], [x])";
+
+
+rule divide (x):"natural(x)"->"equal([x]/[x], 1)";
+
+if (x): "natural([x])" -> {
+    have "equal(1 * [x], [x])" from mult_ident([x]);
+    have "equal([x]/[x], 1)" from divide([x]);
+    have "equal([x]/[x] * [x], [x])" from equality_elum("[x]/[x]", "1",  "", " * [x], [x]");
+}
