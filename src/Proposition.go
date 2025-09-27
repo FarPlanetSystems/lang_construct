@@ -6,20 +6,20 @@ import (
 )
 
 type Proposition struct {
-	rule_name  string
-	conclusion string
-	params     []string
-	premises   []string
-	line       int
+	rule_name   string
+	conclusions []string
+	params      []string
+	premises    []string
+	line        int
 }
 
-func create_proposition(rule_name string, concusion string, params []string, premises []string, line int, project *Project) Proposition {
+func create_proposition(rule_name string, concusions []string, params []string, premises []string, line int, project *Project) Proposition {
 	res := Proposition{
-		rule_name:  rule_name,
-		conclusion: concusion,
-		params:     params,
-		premises:   premises,
-		line:       line,
+		rule_name:   rule_name,
+		conclusions: concusions,
+		params:      params,
+		premises:    premises,
+		line:        line,
 	}
 	project.statements = append(project.statements, res)
 	return res
@@ -28,7 +28,7 @@ func create_proposition(rule_name string, concusion string, params []string, pre
 func deep_copy_proposition(statement Proposition) Proposition {
 	var new_statement Proposition
 	new_statement.rule_name = statement.rule_name
-	new_statement.conclusion = statement.conclusion
+	new_statement.conclusions = statement.conclusions
 	new_statement.params = append(new_statement.params, statement.params...)
 	new_statement.premises = append(new_statement.premises, statement.premises...)
 	new_statement.line = statement.line
@@ -69,15 +69,18 @@ func (proposition Proposition) verify_proposition(project *Project, containing_a
 }
 
 func compare_conclusions(rule Rule, statement Proposition, project *Project) bool {
-	if slices.Contains(rule.conclusions, statement.conclusion) {
-		return true
+	for _, conclusion := range statement.conclusions {
+		if !slices.Contains(rule.conclusions, conclusion) {
+			msg_line := "Error: conclusion " + conclusion + " does not correspond to any conclusion of the rule " + rule.name + "\n	See:"
+			project.message(msg_line, statement.line)
+			for _, element := range rule.conclusions {
+				project.message("	"+element, -1)
+			}
+			return false
+		}
 	}
-	msg_line := "Error: conclusion " + statement.conclusion + " does not correspond to any conclusion of the rule " + rule.name + "\n	See:"
-	project.message(msg_line, statement.line)
-	for _, element := range rule.conclusions {
-		project.message("	"+element, -1)
-	}
-	return false
+
+	return true
 }
 func verify_premisses(rule Rule, statement Proposition, project *Project, containing_area *PropArea) bool {
 	if rule.are_any_premisses {
@@ -127,6 +130,23 @@ func substitude_rule_with_params(params []string, rule Rule) Rule {
 		for j := 0; j < len(substituted_rule.conclusions); j++ {
 			substituted_rule.conclusions[j] = strings.Replace(substituted_rule.conclusions[j], consequence, params[i], -1)
 		}
+	}
+	// if we have %any params, we replace all occurances of [%any] string inside of each rule premise and conclusion with the given params strings
+	if substituted_rule.are_any_params {
+		new_rule_premises := []string{}
+		new_rule_conclusions := []string{}
+		for _, param := range params {
+			for _, premise := range rule.premises {
+				new_premise := strings.Replace(premise, "[$any]", param, -1)
+				new_rule_premises = append(new_rule_premises, new_premise)
+			}
+			for _, conclusion := range substituted_rule.conclusions {
+				new_conclusion := strings.Replace(conclusion, "[$any]", param, -1)
+				new_rule_conclusions = append(new_rule_conclusions, new_conclusion)
+			}
+		}
+		substituted_rule.premises = new_rule_premises
+		substituted_rule.conclusions = new_rule_conclusions
 	}
 
 	return substituted_rule

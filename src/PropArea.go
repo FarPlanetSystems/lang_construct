@@ -14,7 +14,7 @@ func (area *PropArea) verify(project *Project) bool {
 	for _, proposition := range area.containedPropositions {
 		is_verified = proposition.verify_proposition(project, area)
 		if is_verified {
-			area.confirmedPropositions = append(area.confirmedPropositions, proposition.conclusion)
+			area.confirmedPropositions = append(area.confirmedPropositions, proposition.conclusions...)
 		}
 	}
 	return is_verified

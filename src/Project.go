@@ -186,7 +186,7 @@ func (project *Project) addToVerified(element UnverifiedElement) {
 			project.rules = append(project.rules, element.specification)
 		}
 	case UNVERIFIED_PROPOSITION:
-		project.legalExpressions = append(project.legalExpressions, element.proposition.conclusion)
+		project.legalExpressions = append(project.legalExpressions, element.proposition.conclusions...)
 	}
 }
 

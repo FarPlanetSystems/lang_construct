@@ -160,9 +160,20 @@ func def(parser *Parser) {
 func have(parser *Parser) UnverifiedElement {
 
 	eat(parser, HAVE)
-	conclusion := parser.current_token.value
-	//get statement
-	eat(parser, STRING)
+
+	conclusions := []string{}
+	for parser.current_token.token_type != FROM && parser.is_parsed_successfully {
+		if parser.current_token.token_type == COMMA {
+			eat(parser, COMMA)
+			conclusion := parser.current_token.value
+			eat(parser, STRING)
+			conclusions = append(conclusions, conclusion)
+		} else {
+			conclusion := parser.current_token.value
+			eat(parser, STRING)
+			conclusions = append(conclusions, conclusion)
+		}
+	}
 	// get rule's name
 	eat(parser, FROM)
 	rule_name := parser.current_token.value
@@ -202,11 +213,11 @@ func have(parser *Parser) UnverifiedElement {
 	eat(parser, SEMI_COLON)
 	//create statement
 	result := Proposition{
-		rule_name:  rule_name,
-		conclusion: conclusion,
-		params:     params,
-		premises:   premises,
-		line:       parser.lexer.current_line - 1,
+		rule_name:   rule_name,
+		conclusions: conclusions,
+		params:      params,
+		premises:    premises,
+		line:        parser.lexer.current_line - 1,
 	}
 	return createUnverifiedProposition(result)
 }
