@@ -57,7 +57,7 @@ func (element UnverifiedElement) verify(project *Project) bool {
 			if result == "success" {
 				return true
 			}
-			project.message(result, element.specification.line)
+			project.messanger.message(result, element.specification.line)
 			return false
 		}
 	default:

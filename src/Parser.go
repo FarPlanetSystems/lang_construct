@@ -5,77 +5,76 @@ import (
 )
 
 type Parser struct {
-	lexer                   *Lexer
-	current_token           Token
-	project                 *Project
-	is_there_report_section bool
-	is_parsed_successfully  bool
+	lexer                *Lexer
+	currentToken         Token
+	isThereReportSection bool
+	isParsedSuccessfully bool
+	messager             *Messanger
 }
 
-func create_Parser(lexer *Lexer, project *Project) *Parser {
+func createParser(lexer *Lexer, messager *Messanger) *Parser {
 	res := Parser{
-		lexer:                   lexer,
-		current_token:           get_next_token(lexer, project),
-		project:                 project,
-		is_there_report_section: false,
-		is_parsed_successfully:  true,
+		lexer:                lexer,
+		currentToken:         getNextToken(lexer, messager),
+		isThereReportSection: false,
+		isParsedSuccessfully: true,
 	}
 	return &res
 }
 
 func eat(parser *Parser, token_type string) {
-	if parser.current_token.token_type == token_type {
-		parser.current_token = get_next_token(parser.lexer, parser.project)
-		if parser.current_token.token_type == UNEXPECTED_SYMBOL {
-			parser.is_parsed_successfully = false
+	if parser.currentToken.token_type == token_type {
+		parser.currentToken = getNextToken(parser.lexer, parser.messager)
+		if parser.currentToken.token_type == UNEXPECTED_SYMBOL {
+			parser.isParsedSuccessfully = false
 		}
 	} else {
-		msg := "invalid syntaxis: " + token_type + " was expected, but " + parser.current_token.token_type + " was found."
-		parser.project.message(msg, parser.lexer.current_line)
-		parser.is_parsed_successfully = false
-		parser.current_token = get_next_token(parser.lexer, parser.project)
+		msg := "invalid syntaxis: " + token_type + " was expected, but " + parser.currentToken.token_type + " was found."
+		parser.messager.message(msg, parser.lexer.current_line)
+		parser.isParsedSuccessfully = false
+		parser.currentToken = getNextToken(parser.lexer, parser.messager)
 	}
 }
 
 // rule : RULE ID ((BRACKET_L BRACKET_R) | (BRACKET_L ID BRACKET_R) | (BRACKET_L ID (COMMA ID)* BRACKET_R)) | | (BRACKET_L $any BRACKET_R) COLON (STRING | STRING (COMMA STRING)*) ARROW (STRING | (STRING (COMMA STRING)*)) SEMI
 // Example: rule sum_1 (x, y) : "x belong Natural" , "y belong Natural" -> "x + y belong Natural";
-func rule(parser *Parser) {
+func (parser *Parser) rule(project *Project) {
 	eat(parser, RULE)
 	// get the name
-	rule_name := parser.current_token.value
+	rule_name := parser.currentToken.value
 	eat(parser, ID)
-	if parser.project.findIdInProject(rule_name) {
-		parser.is_parsed_successfully = false
-		parser.project.message("id "+rule_name+" already used.", parser.lexer.current_line)
+	if project.findIdInProject(rule_name) {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("id "+rule_name+" already used.", parser.lexer.current_line)
 		return
 	}
 	//get params
 	var params []string
 	var any_params bool = false
 	eat(parser, BRACKETS_L)
-	for parser.current_token.token_type != BRACKETS_R && parser.is_parsed_successfully {
-		switch parser.current_token.token_type {
+	for parser.currentToken.token_type != BRACKETS_R && parser.isParsedSuccessfully {
+		switch parser.currentToken.token_type {
 		case COMMA:
 			eat(parser, COMMA)
-			param := parser.current_token.value
+			param := parser.currentToken.value
 			eat(parser, ID)
 			params = append(params, param)
 		case ID:
-			param := parser.current_token.value
+			param := parser.currentToken.value
 			eat(parser, ID)
 			params = append(params, param)
 		case ANY:
 			any_params = true
 			eat(parser, ANY)
 		default:
-			parser.is_parsed_successfully = false
-			parser.project.message("invalid syntaxis: "+parser.current_token.token_type+" was found, but identificator or $any was expected.", parser.lexer.current_line)
+			parser.isParsedSuccessfully = false
+			parser.messager.message("invalid syntaxis: "+parser.currentToken.token_type+" was found, but identificator or $any was expected.", parser.lexer.current_line)
 			return
 		}
 	}
 	if len(params) != 0 && any_params == true {
-		parser.is_parsed_successfully = false
-		parser.project.message("cannot use $any and parameters at the same time.", parser.lexer.current_line)
+		parser.isParsedSuccessfully = false
+		parser.messager.message("cannot use $any and parameters at the same time.", parser.lexer.current_line)
 		return
 	}
 	eat(parser, BRACKETS_R)
@@ -84,8 +83,8 @@ func rule(parser *Parser) {
 	for i := 0; i < len(params); i++ {
 		for j := i + 1; j < len(params); j++ {
 			if params[i] == params[j] {
-				parser.is_parsed_successfully = false
-				parser.project.message("several params have the same identifier.", parser.lexer.current_line)
+				parser.isParsedSuccessfully = false
+				parser.messager.message("several params have the same identifier.", parser.lexer.current_line)
 				return
 			}
 		}
@@ -93,65 +92,65 @@ func rule(parser *Parser) {
 	// get premises
 	var any_premises bool = false
 	var premises []string
-	if parser.current_token.token_type != ARROW {
+	if parser.currentToken.token_type != ARROW {
 		eat(parser, COLON)
-		for parser.current_token.token_type != ARROW && parser.is_parsed_successfully {
-			switch parser.current_token.token_type {
+		for parser.currentToken.token_type != ARROW && parser.isParsedSuccessfully {
+			switch parser.currentToken.token_type {
 			case COMMA:
 				eat(parser, COMMA)
-				premise := parser.current_token.value
+				premise := parser.currentToken.value
 				eat(parser, STRING)
 				premises = append(premises, premise)
 			case STRING:
-				premise := parser.current_token.value
+				premise := parser.currentToken.value
 				eat(parser, STRING)
 				premises = append(premises, premise)
 			case ANY:
 				any_premises = true
 				eat(parser, ANY)
 			default:
-				parser.is_parsed_successfully = false
-				parser.project.message("invalid syntaxis: "+parser.current_token.token_type+" was found, but string or $any was expected.", parser.lexer.current_line)
+				parser.isParsedSuccessfully = false
+				parser.messager.message("invalid syntaxis: "+parser.currentToken.token_type+" was found, but string or $any was expected.", parser.lexer.current_line)
 				return
 			}
 		}
 	}
 	if len(premises) != 0 && any_premises == true {
-		parser.is_parsed_successfully = false
-		parser.project.message("cannot use $any and premises at the same time.", parser.lexer.current_line)
+		parser.isParsedSuccessfully = false
+		parser.messager.message("cannot use $any and premises at the same time.", parser.lexer.current_line)
 		return
 	}
 	eat(parser, ARROW)
 	// get conclusions
 	var conclusions []string
 	var conclusion string = ""
-	for parser.current_token.token_type != SEMI_COLON && parser.is_parsed_successfully {
-		if parser.current_token.token_type == COMMA {
+	for parser.currentToken.token_type != SEMI_COLON && parser.isParsedSuccessfully {
+		if parser.currentToken.token_type == COMMA {
 			eat(parser, COMMA)
-			conclusion = parser.current_token.value
+			conclusion = parser.currentToken.value
 			eat(parser, STRING)
 			conclusions = append(conclusions, conclusion)
 
 		} else {
-			conclusion = parser.current_token.value
+			conclusion = parser.currentToken.value
 			eat(parser, STRING)
 			conclusions = append(conclusions, conclusion)
 		}
 	}
 
 	eat(parser, SEMI_COLON)
-	create_rule(rule_name, params, premises, conclusions, parser.lexer.current_line, any_params, any_premises, parser.project)
+	create_rule(rule_name, params, premises, conclusions, parser.lexer.current_line, any_params, any_premises, project)
 
 }
 
 // We parce a definition line
 // def : DEF STRING SEMI
 // Example: def "one belong Natural";
-func def(parser *Parser) {
+func (parser *Parser) def(project *Project) {
 	eat(parser, DEF)
-	def_line := parser.current_token.value
+	def_line := parser.currentToken.value
 	eat(parser, STRING)
-	create_definition(def_line, parser.project)
+	createDefinition(def_line, project)
 	eat(parser, SEMI_COLON)
 
 }
@@ -162,34 +161,34 @@ func have(parser *Parser) UnverifiedElement {
 	eat(parser, HAVE)
 
 	conclusions := []string{}
-	for parser.current_token.token_type != FROM && parser.is_parsed_successfully {
-		if parser.current_token.token_type == COMMA {
+	for parser.currentToken.token_type != FROM && parser.isParsedSuccessfully {
+		if parser.currentToken.token_type == COMMA {
 			eat(parser, COMMA)
-			conclusion := parser.current_token.value
+			conclusion := parser.currentToken.value
 			eat(parser, STRING)
 			conclusions = append(conclusions, conclusion)
 		} else {
-			conclusion := parser.current_token.value
+			conclusion := parser.currentToken.value
 			eat(parser, STRING)
 			conclusions = append(conclusions, conclusion)
 		}
 	}
 	// get rule's name
 	eat(parser, FROM)
-	rule_name := parser.current_token.value
+	rule_name := parser.currentToken.value
 	eat(parser, ID)
 	// get params
 	var params []string
 	eat(parser, BRACKETS_L)
-	for parser.current_token.token_type != BRACKETS_R && parser.is_parsed_successfully {
+	for parser.currentToken.token_type != BRACKETS_R && parser.isParsedSuccessfully {
 
-		if parser.current_token.token_type == COMMA {
+		if parser.currentToken.token_type == COMMA {
 			eat(parser, COMMA)
-			param := parser.current_token.value
+			param := parser.currentToken.value
 			eat(parser, STRING)
 			params = append(params, param)
 		} else {
-			param := parser.current_token.value
+			param := parser.currentToken.value
 			eat(parser, STRING)
 			params = append(params, param)
 		}
@@ -198,14 +197,14 @@ func have(parser *Parser) UnverifiedElement {
 
 	// get premises
 	var premises []string
-	for parser.current_token.token_type != SEMI_COLON && parser.is_parsed_successfully {
-		if parser.current_token.token_type == COMMA {
+	for parser.currentToken.token_type != SEMI_COLON && parser.isParsedSuccessfully {
+		if parser.currentToken.token_type == COMMA {
 			eat(parser, COMMA)
-			premise := parser.current_token.value
+			premise := parser.currentToken.value
 			eat(parser, STRING)
 			premises = append(premises, premise)
 		} else {
-			premise := parser.current_token.value
+			premise := parser.currentToken.value
 			eat(parser, STRING)
 			premises = append(premises, premise)
 		}
@@ -225,20 +224,20 @@ func have(parser *Parser) UnverifiedElement {
 func (parser *Parser) ifarea(project *Project) UnverifiedElement {
 	eat(parser, IF)
 	eat(parser, BRACKETS_L)
-	param_name := parser.current_token.value
-	if parser.current_token.token_type != ID {
-		parser.is_parsed_successfully = false
-		project.message("invalid syntax: identificator of a parameter was expected, but "+parser.current_token.token_type+" was found.", parser.lexer.current_line)
+	param_name := parser.currentToken.value
+	if parser.currentToken.token_type != ID {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("invalid syntax: identificator of a parameter was expected, but "+parser.currentToken.token_type+" was found.", parser.lexer.current_line)
 		return UnverifiedElement{}
 	}
 	eat(parser, ID)
 	eat(parser, BRACKETS_R)
 	eat(parser, COLON)
 
-	condition := parser.current_token.value
-	if parser.current_token.token_type != STRING {
-		parser.is_parsed_successfully = false
-		project.message("invalid syntax: a conditional string was expected, but "+parser.current_token.token_type+" was found.", parser.lexer.current_line)
+	condition := parser.currentToken.value
+	if parser.currentToken.token_type != STRING {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("invalid syntax: a conditional string was expected, but "+parser.currentToken.token_type+" was found.", parser.lexer.current_line)
 		return UnverifiedElement{}
 	}
 	eat(parser, STRING)
@@ -246,8 +245,8 @@ func (parser *Parser) ifarea(project *Project) UnverifiedElement {
 	eat(parser, CURL_BRACKETS_L)
 	//here we parse the content of the propositional area body
 	propositions := []Proposition{}
-	token := parser.current_token.token_type
-	for token != REPORT_SECTION && token != EOF && token != CURL_BRACKETS_R && parser.is_parsed_successfully {
+	token := parser.currentToken.token_type
+	for token != REPORT_SECTION && token != EOF && token != CURL_BRACKETS_R && parser.isParsedSuccessfully {
 		switch token {
 		case HAVE:
 			statement := have(parser)
@@ -257,7 +256,7 @@ func (parser *Parser) ifarea(project *Project) UnverifiedElement {
 		case COMMENT:
 			eat(parser, COMMENT)
 		}
-		token = parser.current_token.token_type
+		token = parser.currentToken.token_type
 	}
 	eat(parser, CURL_BRACKETS_R)
 	result := PropArea{param: param_name, condition: condition, containedPropositions: propositions, confirmedPropositions: []string{}}
@@ -266,35 +265,35 @@ func (parser *Parser) ifarea(project *Project) UnverifiedElement {
 
 func (parser *Parser) spec(project *Project) UnverifiedElement {
 	eat(parser, SPEC)
-	name := parser.current_token.value
-	if parser.current_token.token_type != ID {
-		parser.is_parsed_successfully = false
-		project.message("Invalid syntax: an identificator of a specification expected, but "+parser.current_token.token_type+" was found. ", parser.lexer.current_line)
+	name := parser.currentToken.value
+	if parser.currentToken.token_type != ID {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("Invalid syntax: an identificator of a specification expected, but "+parser.currentToken.token_type+" was found. ", parser.lexer.current_line)
 		return UnverifiedElement{}
 	}
 	eat(parser, ID)
 	eat(parser, BRACKETS_L)
-	param := []string{parser.current_token.value}
-	if parser.current_token.token_type != ID {
-		parser.is_parsed_successfully = false
-		project.message("Invalid syntax: an identificator of a parameter expected, but "+parser.current_token.token_type+" was found. ", parser.lexer.current_line)
+	param := []string{parser.currentToken.value}
+	if parser.currentToken.token_type != ID {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("Invalid syntax: an identificator of a parameter expected, but "+parser.currentToken.token_type+" was found. ", parser.lexer.current_line)
 		return UnverifiedElement{}
 	}
 	eat(parser, ID)
 	eat(parser, BRACKETS_R)
 	eat(parser, COLON)
-	condition := []string{parser.current_token.value}
-	if parser.current_token.token_type != STRING {
-		parser.is_parsed_successfully = false
-		project.message("Invalid syntax: conditional string was expected, but "+parser.current_token.token_type+" was found. ", parser.lexer.current_line)
+	condition := []string{parser.currentToken.value}
+	if parser.currentToken.token_type != STRING {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("Invalid syntax: conditional string was expected, but "+parser.currentToken.token_type+" was found. ", parser.lexer.current_line)
 		return UnverifiedElement{}
 	}
 	eat(parser, STRING)
 	eat(parser, ARROW)
-	conclusion := []string{parser.current_token.value}
-	if parser.current_token.token_type != STRING {
-		parser.is_parsed_successfully = false
-		project.message("Invalid syntax: conclusion string was expected, but "+parser.current_token.token_type+" was found. ", parser.lexer.current_line)
+	conclusion := []string{parser.currentToken.value}
+	if parser.currentToken.token_type != STRING {
+		parser.isParsedSuccessfully = false
+		parser.messager.message("Invalid syntax: conclusion string was expected, but "+parser.currentToken.token_type+" was found. ", parser.lexer.current_line)
 		return UnverifiedElement{}
 	}
 	eat(parser, STRING)
@@ -312,16 +311,16 @@ func (parser *Parser) spec(project *Project) UnverifiedElement {
 
 }
 
-func read_import(parser *Parser) {
+func (parser *Parser) readImport(project *Project) {
 	eat(parser, IMPORT)
-	if parser.current_token.token_type == STRING {
-		imported_file := parser.current_token.value
+	if parser.currentToken.token_type == STRING {
+		imported_file := parser.currentToken.value
 		curdir, err := os.Getwd()
 		if err != nil {
-			parser.project.message(err.Error(), -1)
+			parser.messager.message(err.Error(), -1)
 		}
 		imported_file_path := curdir + "\\" + imported_file
-		parser.project.importedProjectsPaths = append(parser.project.importedProjectsPaths, imported_file_path)
+		project.importedProjectsPaths = append(project.importedProjectsPaths, imported_file_path)
 	}
 	eat(parser, STRING)
 	eat(parser, SEMI_COLON)
@@ -331,46 +330,46 @@ func read_import(parser *Parser) {
 // see the specification of language construct interpretator
 // language: (RULE | DEF | HAVE | IMPORT | COMMENT | NEW_LINE)* (EOF | REPORT_SECTION)
 // returns true if code is succefully parced
-func Language(parser *Parser) bool {
+func (parser *Parser) Language(project *Project) bool {
 
-	token := parser.current_token.token_type
-	for token != REPORT_SECTION && token != EOF && parser.is_parsed_successfully {
+	token := parser.currentToken.token_type
+	for token != REPORT_SECTION && token != EOF && parser.isParsedSuccessfully {
 		//fmt.Println("given: \n" + token)
 
 		switch token {
 		case RULE:
-			rule(parser)
+			parser.rule(project)
 		case DEF:
-			def(parser)
+			parser.def(project)
 		case HAVE:
 			expression := have(parser)
-			parser.project.statements = append(parser.project.statements, expression.proposition)
-			queue := &parser.project.unverifiedExpressions
+			project.statements = append(project.statements, expression.proposition)
+			queue := &project.unverifiedExpressions
 			queue.enqueue(expression)
 		case NEW_LINE:
 			eat(parser, NEW_LINE)
 		case COMMENT:
 			eat(parser, COMMENT)
 		case IF:
-			expression := parser.ifarea(parser.project)
-			parser.project.propositionalAreas = append(parser.project.propositionalAreas, expression.propArea)
-			queue := &parser.project.unverifiedExpressions
+			expression := parser.ifarea(project)
+			project.propositionalAreas = append(project.propositionalAreas, expression.propArea)
+			queue := &project.unverifiedExpressions
 			queue.enqueue(expression)
 		case SPEC:
-			expression := parser.spec(parser.project)
-			parser.project.specifications = append(parser.project.rules, expression.specification)
-			queue := &parser.project.unverifiedExpressions
+			expression := parser.spec(project)
+			project.specifications = append(project.specifications, expression.specification)
+			queue := &project.unverifiedExpressions
 			queue.enqueue(expression)
 		case IMPORT:
-			read_import(parser)
+			parser.readImport(project)
 		default:
-			parser.is_parsed_successfully = false
-			parser.project.message("unexpected expression "+parser.current_token.value, 1)
+			parser.isParsedSuccessfully = false
+			parser.messager.message("unexpected expression "+parser.currentToken.value, 1)
 		}
-		token = parser.current_token.token_type
+		token = parser.currentToken.token_type
 	}
 	if token == REPORT_SECTION {
-		parser.is_there_report_section = true
+		parser.isThereReportSection = true
 	}
-	return parser.is_parsed_successfully
+	return parser.isParsedSuccessfully
 }

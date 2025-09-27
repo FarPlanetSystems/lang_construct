@@ -62,7 +62,7 @@ var RESERVED_KEYWORDS = [7]RESERVED_KEYWORD{
 // gets a string which is supposed to be a reserved key word
 // if it is, returns the index of it in RESERVED_WORDS array
 // otherwise returns -1
-func find_reserved_word(word string) int {
+func findReservedWord(word string) int {
 	for i := 0; i < len(RESERVED_KEYWORDS); i++ {
 		if RESERVED_KEYWORDS[i].keyword == word {
 			return i
@@ -78,7 +78,7 @@ type Lexer struct {
 	current_line int
 }
 
-func create_Lexer(text string) *Lexer {
+func createLexer(text string) *Lexer {
 	res := Lexer{
 		text:         text,
 		pos:          0,
@@ -106,7 +106,7 @@ func peek(lexer *Lexer) byte {
 	}
 }
 
-func peek_string(lexer *Lexer, steps int) string {
+func peekString(lexer *Lexer, steps int) string {
 	peek_pos := lexer.pos
 	res := ""
 	for i := 0; i < steps; i++ {
@@ -121,7 +121,7 @@ func peek_string(lexer *Lexer, steps int) string {
 
 }
 
-func read_string(lexer *Lexer) string {
+func readString(lexer *Lexer) string {
 
 	res := ""
 	advance(lexer)
@@ -135,7 +135,7 @@ func read_string(lexer *Lexer) string {
 	}
 	return res
 }
-func read_comment(lexer *Lexer) string {
+func readComment(lexer *Lexer) string {
 	res := ""
 	for lexer.current_char != 0 && lexer.current_char != '\n' {
 		res += string(lexer.current_char)
@@ -147,20 +147,20 @@ func read_comment(lexer *Lexer) string {
 	return res
 }
 
-func skip_spaces(lexer *Lexer) {
+func skipSpaces(lexer *Lexer) {
 	for lexer.current_char != 0 && lexer.current_char == byte(' ') {
 		advance(lexer)
 	}
 }
 
-func read_id(lexer *Lexer) Token {
+func readId(lexer *Lexer) Token {
 	result := ""
-	for is_id_char_correct(lexer.current_char) {
+	for isIdCharCorrect(lexer.current_char) {
 		//fmt.Println(string(lexer.current_char))
 		result += string(lexer.current_char)
 		advance(lexer)
 	}
-	index := find_reserved_word(result)
+	index := findReservedWord(result)
 
 	if index != -1 {
 		return RESERVED_KEYWORDS[index].token
@@ -171,7 +171,7 @@ func read_id(lexer *Lexer) Token {
 // the function checks if a char can be represented in a id string
 // it gets a char and returns true when it is whether a letter or a digit or an underscore
 // otherwise false
-func is_id_char_correct(id_char byte) bool {
+func isIdCharCorrect(id_char byte) bool {
 	if id_char == 0 {
 		return false
 	}
@@ -181,18 +181,18 @@ func is_id_char_correct(id_char byte) bool {
 	return false
 }
 
-func get_next_token(lexer *Lexer, project *Project) Token {
+func getNextToken(lexer *Lexer, messager *Messanger) Token {
 	for lexer.current_char != 0 {
 		//fmt.Println(string(lexer.current_char))
 		switch lexer.current_char {
 		case byte(' '): // skipping empty spaces
-			skip_spaces(lexer)
+			skipSpaces(lexer)
 		case byte('"'): // strings
-			return create_Token(STRING, read_string(lexer))
+			return create_Token(STRING, readString(lexer))
 
 		case byte('#'): //comments
 			lexer.current_line += 1
-			return create_Token(COMMENT, read_comment(lexer))
+			return create_Token(COMMENT, readComment(lexer))
 		case byte('.'): // end
 			advance(lexer)
 			return create_Token(DOT, ".")
@@ -221,14 +221,14 @@ func get_next_token(lexer *Lexer, project *Project) Token {
 			advance(lexer)
 			return create_Token(CURL_BRACKETS_R, "}")
 		case byte('$'):
-			if peek_string(lexer, 3) == "any" {
+			if peekString(lexer, 3) == "any" {
 				advance(lexer)
 				advance(lexer)
 				advance(lexer)
 				advance(lexer)
 				return create_Token(ANY, "$any")
 			} else {
-				project.message("Unexpected symbol: $any was expected", lexer.current_line)
+				messager.message("Unexpected symbol: $any was expected", lexer.current_line)
 				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
 			}
 		case byte(':'): // premises intro
@@ -240,7 +240,7 @@ func get_next_token(lexer *Lexer, project *Project) Token {
 				advance(lexer)
 				return create_Token(ARROW, "->")
 			} else {
-				project.message("Unexpected symbol: -> was expected.", lexer.current_line)
+				messager.message("Unexpected symbol: -> was expected.", lexer.current_line)
 				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
 			}
 		case byte('@'): // report sectioin
@@ -250,9 +250,9 @@ func get_next_token(lexer *Lexer, project *Project) Token {
 		default:
 
 			if unicode.IsLetter(rune(lexer.current_char)) { // reading keywords or names of rules
-				return read_id(lexer)
+				return readId(lexer)
 			} else {
-				project.message("Unexpected symbol: "+string(lexer.current_char), lexer.current_line)
+				messager.message("Unexpected symbol: "+string(lexer.current_char), lexer.current_line)
 				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
 			}
 		}

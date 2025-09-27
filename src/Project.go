@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -20,16 +19,16 @@ type Project struct {
 	propositionalAreas         []*PropArea
 	specifications             []Rule
 	unverifiedExpressions      UnverifiedElementQueue
-	reports                    []string
 	code                       string
 	isThereReportSection       bool
 	is_interpreted_succesfully bool
 	isCoherent                 bool
 	projectFilePath            string
 	importedProjectsPaths      []string
+	messanger                  *Messanger
 }
 
-func create_project(raw_text string, file_path string) *Project {
+func createProject(raw_text string, file_path string) *Project {
 
 	res := Project{
 		code:                       raw_text,
@@ -37,6 +36,7 @@ func create_project(raw_text string, file_path string) *Project {
 		projectFilePath:            file_path,
 		is_interpreted_succesfully: true,
 		isCoherent:                 false,
+		messanger:                  &Messanger{},
 	}
 	return &res
 }
@@ -58,14 +58,14 @@ func main() {
 }
 func run() {
 	// we get the file name of a .txt from the terminal
-	file_path, err := get_file_path()
+	file_path, err := getFilePath()
 	// check that everything was alright with getting file name
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	// get the code inside the file
-	code, err := read_code(file_path)
+	code, err := readCode(file_path)
 	// check that everything was alright opening and reading the file
 	if err != nil {
 		fmt.Println(err)
@@ -76,29 +76,27 @@ func run() {
 		fmt.Println("cannot run an empty file " + file_path)
 		return
 	}
-	project := create_project(code, file_path)
+	project := createProject(code, file_path)
 
-	correct := interpretation_cycle(project)
+	correct := interpret(project)
 	// if both interpretation and verification appear successful, we send a corresponding message
 	if correct {
-		project.message("Coherence verified!", -1)
+		project.messanger.message("Coherence verified!", -1)
 	}
 	//we send all saved messages to the file
 	report(*project)
 
 }
 
-// interprete and verify given project
-// in case everything went fine returns true, otherwise false
-func interpretation_cycle(project *Project) bool {
+func interpret(project *Project) bool {
 
 	//we let the lexer and parser do their work
-	interpret_project(project)
+	interpretProject(project)
 
 	// we import all needed projects
 	for i := 0; i < len(project.importedProjectsPaths); i++ {
 		// get the code inside the file
-		code, err := read_code(project.importedProjectsPaths[i])
+		code, err := readCode(project.importedProjectsPaths[i])
 		// check that everything was alright opening and reading the file
 		if err != nil {
 			fmt.Println(err)
@@ -109,9 +107,9 @@ func interpretation_cycle(project *Project) bool {
 			fmt.Println("cannot run an empty file " + project.importedProjectsPaths[i])
 			return false
 		}
-		imported_project := create_project(code, project.importedProjectsPaths[i])
+		imported_project := createProject(code, project.importedProjectsPaths[i])
 
-		if !import_project(imported_project, project) {
+		if !importProject(imported_project, project) {
 			return false
 		}
 	}
@@ -122,16 +120,16 @@ func interpretation_cycle(project *Project) bool {
 	return project.is_interpreted_succesfully && project.isCoherent
 }
 
-func interpret_project(project *Project) {
-	parser := create_Parser(create_Lexer(project.code), project)
-	project.is_interpreted_succesfully = Language(parser)
-	project.isThereReportSection = parser.is_there_report_section
+func interpretProject(project *Project) {
+	parser := createParser(createLexer(project.code), project.messanger)
+	project.is_interpreted_succesfully = parser.Language(project)
+	project.isThereReportSection = parser.isThereReportSection
 }
 
 // gets a string representing the path of a txt working file in "projects" folder.
 // if there is such a file, returns its content before "@" symbol converted to string and nil.
 // otherwise, an empty string and an error
-func read_code(file_path string) (string, error) {
+func readCode(file_path string) (string, error) {
 	_, err := os.Open(file_path)
 	if err != nil {
 		return "", err
@@ -148,7 +146,7 @@ func read_code(file_path string) (string, error) {
 	return code, nil
 }
 
-func get_file_path() (string, error) {
+func getFilePath() (string, error) {
 	file_name := os.Args[1]
 	// parsing
 	file_name = strings.ReplaceAll(file_name, " ", "")
@@ -190,7 +188,7 @@ func (project *Project) addToVerified(element UnverifiedElement) {
 	}
 }
 
-func create_definition(definition string, project *Project) {
+func createDefinition(definition string, project *Project) {
 	project.definitions = append(project.definitions, definition)
 	project.legalExpressions = append(project.legalExpressions, definition)
 }
@@ -198,7 +196,7 @@ func create_definition(definition string, project *Project) {
 // reads and interpret the code in file named project_file.
 // if both reading and interpretation run successfully, ads all rules and legal expressions from read project to the one given in params and returns true
 // otherwise returns false
-func import_project(project_from *Project, project_to *Project) bool {
+func importProject(project_from *Project, project_to *Project) bool {
 	importing_projects = append(importing_projects, project_to)
 
 	// check importation cylcing
@@ -209,7 +207,7 @@ func import_project(project_from *Project, project_to *Project) bool {
 		}
 	}
 	// we read and interpret the imported project as we do with the initiate one
-	correct := interpretation_cycle(project_from)
+	correct := interpret(project_from)
 	// we add all rules and legal expressions from one to another
 	if correct {
 		project_to.legalExpressions = append(project_to.legalExpressions, project_from.legalExpressions...)
@@ -221,22 +219,14 @@ func import_project(project_from *Project, project_to *Project) bool {
 	}
 }
 
-func (project *Project) message(message_line string, line int) {
-	if line > 0 {
-		message_line = message_line + " Line " + strconv.Itoa(line)
-	}
-	//message_line = message_line + "\n"
-	project.reports = append(project.reports, message_line)
-}
-
 func report(project Project) {
 	os.OpenFile(project.projectFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	new_doc_line := project.code
 	if !project.isThereReportSection {
 		new_doc_line = project.code + "@\n"
 	}
-	for i := 0; i < len(project.reports); i++ {
-		new_doc_line += project.reports[i]
+	for i := 0; i < len(project.messanger.messages); i++ {
+		new_doc_line += project.messanger.messages[i]
 		new_doc_line += "\n"
 	}
 	os.Truncate(project.projectFilePath, 0)
