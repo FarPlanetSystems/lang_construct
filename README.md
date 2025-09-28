@@ -1,6 +1,6 @@
 # lang_construct
 
-A tool for defining formal systems.
+Tool for defining formal systems.
 
 inspired by .lean, coq etc, but easier and works for every formal system (defined by you).
 It gives simplest tools for defining rules of inference and assists you checking if every element of the system is correctly infered from these rules.
@@ -15,9 +15,7 @@ go install github.com/FarPlanetSystems/lang_construct
 
 ## Usage
 
-- run lang_construct
-- create a plain text file, for example test.txt
-- write some code:
+- write a .txt file with some code:
 
 ```
 def "A be statement";
@@ -25,8 +23,13 @@ rule exMiddle (x): "[x] be statement" -> "[x] or not [x]";
 have "A or not A" from exMiddle ("A") "A be statement";
 ```
 
-- enter the name of the file in the command line
-- then check the initiate file again: there you will find a message from lang_construct after @ symbol. If everything is ok you will get the "coherence verified!" report
+- run lang_construct passing the file name:
+
+```
+lang_construct "example.txt"
+```
+
+- see the interpretor message in the initial code file. If ho errors occured, you will find the `coherence verified!` report:
 
 ```
 def "A be statement";
