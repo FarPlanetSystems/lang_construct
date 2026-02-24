@@ -1,4 +1,4 @@
-package main
+package compiler_objects
 
 type Rule struct {
 	name              string
@@ -10,7 +10,7 @@ type Rule struct {
 	line              int
 }
 
-func create_rule(name string, params []string, premises []string, conclusions []string, line int, any_params bool, any_premisses bool, project *Project) Rule {
+func create_rule(name string, params []string, premises []string, conclusions []string, line int, any_params bool, any_premisses bool) Rule {
 	res := Rule{
 		name:              name,
 		premises:          premises,
@@ -20,7 +20,6 @@ func create_rule(name string, params []string, premises []string, conclusions []
 		are_any_premisses: any_premisses,
 		are_any_params:    any_params,
 	}
-	project.rules = append(project.rules, res)
 	return res
 }
 

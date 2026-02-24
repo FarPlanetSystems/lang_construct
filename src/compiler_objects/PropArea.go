@@ -1,20 +1,19 @@
-package main
-
-import "fmt"
+package compiler_objects
 
 type PropArea struct {
 	param                 string
 	condition             string
-	containedPropositions []Proposition
+	containedPropositions []Proposition2
 	confirmedPropositions []string
 }
 
+/*
 func (area *PropArea) verify(project *Project) bool {
 	is_verified := false
 	for _, proposition := range area.containedPropositions {
 		is_verified = proposition.verify_proposition(project, area)
 		if is_verified {
-			area.confirmedPropositions = append(area.confirmedPropositions, proposition.conclusions...)
+			area.confirmedPropositions = append(area.confirmedPropositions, proposition.Conclusions...)
 		}
 	}
 	return is_verified
@@ -52,3 +51,4 @@ func findSpecifiedProposition(project Project, rule Rule) string {
 	message := "no specified proposition with the given parameter and condition was found among propositional areas"
 	return message
 }
+*/

@@ -1,10 +1,11 @@
-package main
+package compiler_objects
 
 // Token types
 const STRING = "STRING"
 
 const ARROW = "ARROW"
 const COLON = "COLON"
+const COLON_EQUAL = "COLON_EQUAL"
 const COMMA = "COMMA"
 const DOT = "DOT"
 const NEW_LINE = "NEW_LINE"
@@ -28,16 +29,17 @@ const SQ_BRACKEtS_R = "SQ_BRACKETS_R"
 const SQ_BRACKETS_L = "SQ_BRACKETS_R"
 const ANY = "ANY"
 const EOF = "EOF"
+const CONCLUSION_TOKEN = "CONCLUSION_TOKEN"
 
 type Token struct {
-	token_type string
-	value      string
+	TokenType string
+	Value     string
 }
 
-func create_Token(token_type string, value string) Token {
+func CreateToken(tokenType string, value string) Token {
 	res := Token{
-		token_type: token_type,
-		value:      value,
+		TokenType: tokenType,
+		Value:     value,
 	}
 	return res
 }

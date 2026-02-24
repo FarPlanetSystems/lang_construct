@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strings"
+	"github.com/FarPlanetSystems/lang_construct/compiler_objects"
 )
 
 // since we can import other projects, we need to be sure that none of them point to the initiate one (we want to prevent cycles)
@@ -12,31 +10,15 @@ import (
 var importing_projects []*Project
 
 type Project struct {
-	rules                      []Rule
-	statements                 []Proposition
-	definitions                []string
-	legalExpressions           []string
-	propositionalAreas         []*PropArea
-	specifications             []Rule
-	unverifiedExpressions      UnverifiedElementQueue
-	code                       string
-	isThereReportSection       bool
-	is_interpreted_succesfully bool
-	isCoherent                 bool
-	projectFilePath            string
-	importedProjectsPaths      []string
-	messanger                  *Messanger
+	allSyntaxRules  []compiler_objects.SyntaxRule
+	allPropositions []compiler_objects.Proposition
 }
 
-func createProject(raw_text string, file_path string) *Project {
+func createProject(syntax []compiler_objects.SyntaxRule, propositions []compiler_objects.Proposition) *Project {
 
 	res := Project{
-		code:                       raw_text,
-		isThereReportSection:       false,
-		projectFilePath:            file_path,
-		is_interpreted_succesfully: true,
-		isCoherent:                 false,
-		messanger:                  &Messanger{},
+		allSyntaxRules:  syntax,
+		allPropositions: propositions,
 	}
 	return &res
 }
@@ -45,18 +27,19 @@ func createProject(raw_text string, file_path string) *Project {
 // it checks all rules and compares the given id with their names
 // if any matches are present, returns true; otherwise - false
 func (project Project) findIdInProject(id string) bool {
-	for i := 0; i < len(project.rules); i++ {
-		if id == project.rules[i].name {
+	for i := 0; i < len(project.allSyntaxRules); i++ {
+		if id == project.allSyntaxRules[i].Name {
 			return true
 		}
 	}
 	return false
 }
 
-func main() {
-	run()
-}
-func run() {
+/*
+	func main() {
+		run()
+	}
+		func run() {
 	// we get the file name of a .txt from the terminal
 	file_path, err := getFilePath()
 	// check that everything was alright with getting file name
@@ -81,13 +64,14 @@ func run() {
 	correct := interpret(project)
 	// if both interpretation and verification appear successful, we send a corresponding message
 	if correct {
-		project.messanger.message("Coherence verified!", -1)
+		project.messanger.insertMessage("Coherence verified!", -1)
 	}
 	//we send all saved messages to the file
 	report(*project)
 
 }
-
+*/
+/*
 func interpret(project *Project) bool {
 
 	//we let the lexer and parser do their work
@@ -96,12 +80,8 @@ func interpret(project *Project) bool {
 	// we import all needed projects
 	for i := 0; i < len(project.importedProjectsPaths); i++ {
 		// get the code inside the file
-		code, err := readCode(project.importedProjectsPaths[i])
-		// check that everything was alright opening and reading the file
-		if err != nil {
-			fmt.Println(err)
-			return false
-		}
+		//code, err := readCode(project.importedProjectsPaths[i])
+		code := ""
 		// check whether the file is empty
 		if len(code) < 1 {
 			fmt.Println("cannot run an empty file " + project.importedProjectsPaths[i])
@@ -121,42 +101,14 @@ func interpret(project *Project) bool {
 }
 
 func interpretProject(project *Project) {
-	parser := createParser(createLexer(project.code), project.messanger)
-	project.is_interpreted_succesfully = parser.Language(project)
+	parser := createParser(project.messanger)
+	project.is_interpreted_succesfully = true //parser.Language(project)
 	project.isThereReportSection = parser.isThereReportSection
 }
 
 // gets a string representing the path of a txt working file in "projects" folder.
 // if there is such a file, returns its content before "@" symbol converted to string and nil.
 // otherwise, an empty string and an error
-func readCode(file_path string) (string, error) {
-	_, err := os.Open(file_path)
-	if err != nil {
-		return "", err
-	}
-	bytes, _ := os.ReadFile(file_path)
-	code := ""
-	for i := 0; i < len(bytes); i++ {
-		if string(bytes[i]) != "@" {
-			code += string(bytes[i])
-		} else {
-			return code, nil
-		}
-	}
-	return code, nil
-}
-
-func getFilePath() (string, error) {
-	file_name := os.Args[1]
-	// parsing
-	file_name = strings.ReplaceAll(file_name, " ", "")
-	file_name = strings.ReplaceAll(file_name, "\n", "")
-	file_name = strings.ReplaceAll(file_name, "\r", "")
-	// creating the path
-	curdir, err := os.Getwd()
-	file_path := curdir + "\\" + file_name
-	return file_path, err
-}
 
 func (project *Project) verify() bool {
 	queue := &project.unverifiedExpressions
@@ -184,7 +136,7 @@ func (project *Project) addToVerified(element UnverifiedElement) {
 			project.rules = append(project.rules, element.specification)
 		}
 	case UNVERIFIED_PROPOSITION:
-		project.legalExpressions = append(project.legalExpressions, element.proposition.conclusions...)
+		project.legalExpressions = append(project.legalExpressions, element.proposition.Conclusions...)
 	}
 }
 
@@ -235,3 +187,4 @@ func report(project Project) {
 		fmt.Println(i)
 	}
 }
+*/

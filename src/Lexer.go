@@ -2,61 +2,68 @@ package main
 
 import (
 	"unicode"
+
+	"github.com/FarPlanetSystems/lang_construct/compiler_objects"
 )
 
 type RESERVED_KEYWORD struct {
 	keyword string
-	token   Token
+	token   compiler_objects.Token
 }
 
 var RESERVED_KEYWORDS = [7]RESERVED_KEYWORD{
 	{
+		keyword: "rule",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.RULE,
+			Value:     "rule",
+		},
+	},
+
+	// remove this
+	{
 		keyword: "have",
-		token: Token{
-			token_type: HAVE,
-			value:      "have",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.HAVE,
+			Value:     "have",
 		},
 	},
 	{
 		keyword: "def",
-		token: Token{
-			token_type: DEF,
-			value:      "def",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.DEF,
+			Value:     "def",
 		},
 	},
-	{
-		keyword: "rule",
-		token: Token{
-			token_type: RULE,
-			value:      "rule",
-		},
-	},
+
 	{
 		keyword: "from",
-		token: Token{
-			token_type: FROM,
-			value:      "from",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.FROM,
+			Value:     "from",
 		},
 	},
 	{
 		keyword: "import",
-		token: Token{
-			token_type: IMPORT,
-			value:      "import",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.IMPORT,
+			Value:     "import",
 		},
 	},
 	{
 		keyword: "if",
-		token: Token{
-			token_type: IF,
-			value:      "if",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.IF,
+			Value:     "if",
 		},
 	},
 	{
 		keyword: "spec",
-		token: Token{
-			token_type: SPEC,
-		}},
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.SPEC,
+			Value:     "spec",
+		},
+	},
 }
 
 // gets a string which is supposed to be a reserved key word
@@ -71,19 +78,24 @@ func findReservedWord(word string) int {
 	return -1
 }
 
+const LEXER_MODE_DEFAULT = "LEXER_MODE_DEFAULT"
+const LEXER_MODE_HAVE = "LEXER_MODE_HAVE"
+
 type Lexer struct {
 	text         string
 	pos          int
 	current_char byte
 	current_line int
+	mode         string
 }
 
-func createLexer(text string) *Lexer {
+func CreateLexer(text string) *Lexer {
 	res := Lexer{
 		text:         text,
 		pos:          0,
 		current_char: byte(text[0]),
 		current_line: 1,
+		mode:         LEXER_MODE_DEFAULT,
 	}
 	return &res
 }
@@ -153,7 +165,7 @@ func skipSpaces(lexer *Lexer) {
 	}
 }
 
-func readId(lexer *Lexer) Token {
+func readId(lexer *Lexer) compiler_objects.Token {
 	result := ""
 	for isIdCharCorrect(lexer.current_char) {
 		//fmt.Println(string(lexer.current_char))
@@ -165,7 +177,16 @@ func readId(lexer *Lexer) Token {
 	if index != -1 {
 		return RESERVED_KEYWORDS[index].token
 	}
-	return create_Token(ID, result)
+	return compiler_objects.CreateToken(compiler_objects.ID, result)
+}
+
+func readConclusionToken(lexer *Lexer) compiler_objects.Token {
+	result := ""
+	for isIdCharCorrect(lexer.current_char) {
+		result += string(lexer.current_char)
+		advance(lexer)
+	}
+	return compiler_objects.CreateToken(compiler_objects.CONCLUSION_TOKEN, result)
 }
 
 // the function checks if a char can be represented in a id string
@@ -175,92 +196,123 @@ func isIdCharCorrect(id_char byte) bool {
 	if id_char == 0 {
 		return false
 	}
-	if unicode.IsLetter(rune(id_char)) || unicode.IsDigit(rune(id_char)) || string(id_char) == "_" {
-		return true
+	switch string(id_char) {
+	case " ":
+		return false
+	case ";":
+		return false
 	}
-	return false
+	/*
+		if unicode.IsLetter(rune(id_char)) || unicode.IsDigit(rune(id_char)) || string(id_char) == "_" {
+			return true
+		}
+	*/
+	return true
 }
 
-func getNextToken(lexer *Lexer, messager *Messanger) Token {
+func (lexer *Lexer) getNextToken(messager *Messenger) compiler_objects.Token {
+	skipSpaces(lexer)
 	for lexer.current_char != 0 {
 		//fmt.Println(string(lexer.current_char))
+		//fmt.Println("mode " + lexer.mode)
+		if lexer.mode == LEXER_MODE_HAVE {
+			switch lexer.current_char {
+			case byte(';'):
+				advance(lexer)
+				//fmt.Println("changing mode def")
+				(*lexer).mode = LEXER_MODE_DEFAULT
+				return compiler_objects.CreateToken(compiler_objects.SEMI_COLON, ";")
+
+			default:
+				return readConclusionToken(lexer)
+			}
+		}
 		switch lexer.current_char {
-		case byte(' '): // skipping empty spaces
-			skipSpaces(lexer)
 		case byte('"'): // strings
-			return create_Token(STRING, readString(lexer))
+			return compiler_objects.CreateToken(compiler_objects.STRING, readString(lexer))
 
 		case byte('#'): //comments
 			lexer.current_line += 1
-			return create_Token(COMMENT, readComment(lexer))
+			return compiler_objects.CreateToken(compiler_objects.COMMENT, readComment(lexer))
 		case byte('.'): // end
 			advance(lexer)
-			return create_Token(DOT, ".")
+			return compiler_objects.CreateToken(compiler_objects.DOT, ".")
 		case byte(','):
 			advance(lexer)
-			return create_Token(COMMA, ",")
+			return compiler_objects.CreateToken(compiler_objects.COMMA, ",")
 		case byte(';'):
 			advance(lexer)
-			return create_Token(SEMI_COLON, ";")
+			(*lexer).mode = LEXER_MODE_DEFAULT
+			//fmt.Println("changing mode def")
+			return compiler_objects.CreateToken(compiler_objects.SEMI_COLON, ";")
 		case byte('\r'):
 			advance(lexer)
 		case byte('\n'):
 			advance(lexer)
 			lexer.current_line += 1
-			return create_Token(NEW_LINE, "\n")
 		case byte('('):
 			advance(lexer)
-			return create_Token(BRACKETS_L, "(")
+			return compiler_objects.CreateToken(compiler_objects.BRACKETS_L, "(")
 		case byte(')'):
 			advance(lexer)
-			return create_Token(BRACKETS_R, ")")
+			return compiler_objects.CreateToken(compiler_objects.BRACKETS_R, ")")
 		case byte('{'):
 			advance(lexer)
-			return create_Token(CURL_BRACKETS_L, "{")
+			return compiler_objects.CreateToken(compiler_objects.CURL_BRACKETS_L, "{")
 		case byte('}'):
 			advance(lexer)
-			return create_Token(CURL_BRACKETS_R, "}")
+			return compiler_objects.CreateToken(compiler_objects.CURL_BRACKETS_R, "}")
 		case byte('$'):
 			if peekString(lexer, 3) == "any" {
 				advance(lexer)
 				advance(lexer)
 				advance(lexer)
 				advance(lexer)
-				return create_Token(ANY, "$any")
+				return compiler_objects.CreateToken(compiler_objects.ANY, "$any")
 			} else {
-				messager.message("Unexpected symbol: $any was expected", lexer.current_line)
-				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
+				messager.InsertMessage("Unexpected symbol: $any was expected", lexer.current_line)
+				return compiler_objects.CreateToken(compiler_objects.UNEXPECTED_SYMBOL, string(lexer.current_char))
 			}
-		case byte(':'): // premises intro
-			advance(lexer)
-			return create_Token(COLON, ":")
+		case byte(':'): // premises intro grammar definition
+
+			if peekString(lexer, 1) == "=" {
+				advance(lexer)
+				advance(lexer)
+				return compiler_objects.CreateToken(compiler_objects.COLON_EQUAL, ":=")
+			}
+			return compiler_objects.CreateToken(compiler_objects.COLON, ":")
 		case byte('-'): // conclusion intro
 			if peek(lexer) == byte('>') {
 				advance(lexer)
 				advance(lexer)
-				return create_Token(ARROW, "->")
+				return compiler_objects.CreateToken(compiler_objects.ARROW, "->")
 			} else {
-				messager.message("Unexpected symbol: -> was expected.", lexer.current_line)
-				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
+				messager.InsertMessage("Unexpected symbol: -> was expected.", lexer.current_line)
+				return compiler_objects.CreateToken(compiler_objects.UNEXPECTED_SYMBOL, string(lexer.current_char))
 			}
 		case byte('@'): // report sectioin
 			advance(lexer)
-			return create_Token(REPORT_SECTION, "@")
+			return compiler_objects.CreateToken(compiler_objects.REPORT_SECTION, "@")
 
 		default:
-
-			if unicode.IsLetter(rune(lexer.current_char)) { // reading keywords or names of rules
-				return readId(lexer)
+			if unicode.IsLetter(rune(lexer.current_char)) || unicode.IsDigit(rune(lexer.current_char)) { // reading keywords or names of rules
+				idToken := readId(lexer)
+				if idToken.TokenType == compiler_objects.HAVE {
+					//fmt.Println("changing mode have")
+					(*lexer).mode = LEXER_MODE_HAVE
+				}
+				return idToken
 			} else {
-				messager.message("Unexpected symbol: "+string(lexer.current_char), lexer.current_line)
-				return create_Token(UNEXPECTED_SYMBOL, string(lexer.current_char))
+				messager.InsertMessage("Unexpected symbol: "+string(lexer.current_char), lexer.current_line)
+				return compiler_objects.CreateToken(compiler_objects.UNEXPECTED_SYMBOL, string(lexer.current_char))
 			}
+
 		}
 
 	}
-	res := Token{
-		token_type: EOF,
-		value:      "EOF",
+	res := compiler_objects.Token{
+		TokenType: compiler_objects.EOF,
+		Value:     "EOF",
 	}
 	return res
 }

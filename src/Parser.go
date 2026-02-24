@@ -1,27 +1,200 @@
 package main
 
 import (
-	"os"
+	"fmt"
+
+	"github.com/FarPlanetSystems/lang_construct/compiler_objects"
 )
 
+/*
+ */
+
 type Parser struct {
-	lexer                *Lexer
-	currentToken         Token
 	isThereReportSection bool
 	isParsedSuccessfully bool
-	messager             *Messanger
+	messager             *Messenger
+	currentStatement     *compiler_objects.Statement
 }
 
-func createParser(lexer *Lexer, messager *Messanger) *Parser {
+func createParser(messager *Messenger) *Parser {
+
 	res := Parser{
-		lexer:                lexer,
-		currentToken:         getNextToken(lexer, messager),
+		messager:             messager,
 		isThereReportSection: false,
 		isParsedSuccessfully: true,
 	}
 	return &res
 }
 
+func (parser *Parser) Clear() {
+	parser.isThereReportSection = false
+	parser.isParsedSuccessfully = true
+	parser.currentStatement = nil
+}
+
+func (parser *Parser) currentToken() compiler_objects.Token {
+	return parser.currentStatement.Face()
+}
+
+func (parser *Parser) parseGrammar(statement *compiler_objects.Statement) compiler_objects.SyntaxRule {
+	fmt.Println("parsing grammar...")
+	parser.currentStatement = statement
+	grammarRuleName := parser.currentStatement.Face().Value
+	syntaxRule := compiler_objects.CreateSyntaxRule(grammarRuleName, []compiler_objects.SyntaxOption{})
+	parser.eatToken(compiler_objects.ID)
+	parser.eatToken(compiler_objects.COLON_EQUAL)
+	syntaxRule.Options = parser.parseGrammarAddRule()
+	return syntaxRule
+}
+
+func (parser *Parser) parseGrammarRule() compiler_objects.SyntaxOption {
+	fmt.Println("parsing grammar rule...")
+	option := compiler_objects.CreateSyntaxOption()
+	for parser.currentToken().TokenType != compiler_objects.COMMA && !parser.currentStatement.IsEmpty() {
+		(&option).Enqueue(parser.parseGrammarRuleWord())
+		if !parser.isParsedSuccessfully {
+			return compiler_objects.CreateSyntaxOption()
+		}
+	}
+	return option
+}
+
+// reserved symobls like := must be checked
+func (parser *Parser) parseGrammarRuleWord() compiler_objects.GrammarWord {
+	//fmt.Println(token.token_type)
+	switch parser.currentToken().TokenType {
+	case compiler_objects.STRING:
+		word := parser.currentToken()
+		parser.eatToken(compiler_objects.STRING)
+		return compiler_objects.GrammarWord{Content: compiler_objects.Token{Value: word.Value, TokenType: word.TokenType}}
+	case compiler_objects.ID:
+		word := parser.currentToken()
+		parser.eatToken(compiler_objects.ID)
+		return compiler_objects.GrammarWord{Content: compiler_objects.Token{Value: word.Value, TokenType: word.TokenType}}
+	default:
+		parser.messager.InsertMessage("ERROR: grammar rule id or string word expected, but "+parser.currentToken().TokenType+" was found", parser.currentStatement.Line)
+		parser.isParsedSuccessfully = false
+		return compiler_objects.GrammarWord{}
+	}
+
+}
+
+func (parser *Parser) parseGrammarAddRule() []compiler_objects.SyntaxOption {
+	options := []compiler_objects.SyntaxOption{}
+	if parser.currentToken().TokenType == compiler_objects.STRING || parser.currentToken().TokenType == compiler_objects.ID {
+		options = append(options, parser.parseGrammarRule())
+	}
+	for parser.currentToken().TokenType == compiler_objects.COMMA {
+		parser.eatToken(compiler_objects.COMMA)
+		options = append(options, parser.parseGrammarRule())
+		if !parser.isParsedSuccessfully {
+			return []compiler_objects.SyntaxOption{}
+		}
+	}
+	return options
+}
+
+func (parser *Parser) eatToken(token_type string) {
+	if parser.currentStatement.IsEmpty() {
+
+		msg := "invalid syntaxis: " + token_type + " was expected, but end of expression was found."
+		parser.messager.InsertMessage(msg, parser.currentStatement.Line)
+		parser.isParsedSuccessfully = false
+		return
+	}
+	if parser.currentStatement.Face().TokenType == token_type {
+		parser.currentStatement.Dequeue()
+		/*
+			if parser.currentStatement.face().token_type == UNEXPECTED_SYMBOL {
+				parser.isParsedSuccessfully = false
+			}
+		*/
+
+	} else {
+
+		msg := "invalid syntaxis: " + token_type + " was expected, but " + parser.currentStatement.Face().TokenType + " was found."
+		parser.messager.InsertMessage(msg, parser.currentStatement.Line)
+		parser.isParsedSuccessfully = false
+	}
+}
+
+// fix the error: check how the grammar rule tree was created and figure out why the rule wont apply
+func (parser *Parser) have(statement *compiler_objects.Statement) compiler_objects.Proposition {
+	parser.Clear()
+	parser.currentStatement = statement
+	parser.eatToken(compiler_objects.HAVE)
+
+	/*
+		conclusions := []string{}
+		for parser.currentToken.token_type != FROM && parser.isParsedSuccessfully {
+			if parser.currentToken.token_type == COMMA {
+				eat(parser, COMMA)
+				conclusion := parser.currentToken.value
+				eat(parser, STRING)
+				conclusions = append(conclusions, conclusion)
+			} else {
+				conclusion := parser.currentToken.value
+				eat(parser, STRING)
+				conclusions = append(conclusions, conclusion)
+			}
+		}*/
+
+	proposition := compiler_objects.Proposition{Line: parser.currentStatement.Line, Conclusion: compiler_objects.CreateStatement()}
+	for parser.currentToken().TokenType != compiler_objects.FROM && !parser.currentStatement.IsEmpty() {
+		proposition.Conclusion.Enqueue(parser.currentToken())
+		parser.eatToken(compiler_objects.CONCLUSION_TOKEN)
+	}
+	/*
+		// get rule's name
+		eat(parser, FROM)
+		rule_name := parser.currentToken.value
+		eat(parser, ID)
+		// get params
+		var params []string
+		eat(parser, BRACKETS_L)
+		for parser.currentToken.token_type != BRACKETS_R && parser.isParsedSuccessfully {
+
+			if parser.currentToken.token_type == COMMA {
+				eat(parser, COMMA)
+				param := parser.currentToken.value
+				eat(parser, STRING)
+				params = append(params, param)
+			} else {
+				param := parser.currentToken.value
+				eat(parser, STRING)
+				params = append(params, param)
+			}
+		}
+		eat(parser, BRACKETS_R)
+
+		// get premises
+		var premises []string
+		for parser.currentToken.token_type != SEMI_COLON && parser.isParsedSuccessfully {
+			if parser.currentToken.token_type == COMMA {
+				eat(parser, COMMA)
+				premise := parser.currentToken.value
+				eat(parser, STRING)
+				premises = append(premises, premise)
+			} else {
+				premise := parser.currentToken.value
+				eat(parser, STRING)
+				premises = append(premises, premise)
+			}
+		}
+		eat(parser, SEMI_COLON)
+		//create statement
+		result := Proposition2{
+			rule_name:   rule_name,
+			conclusions: conclusions,
+			params:      params,
+			premises:    premises,
+			line:        parser.lexer.current_line - 1,
+		}
+	*/
+	return proposition
+}
+
+/*
 func eat(parser *Parser, token_type string) {
 	if parser.currentToken.token_type == token_type {
 		parser.currentToken = getNextToken(parser.lexer, parser.messager)
@@ -373,3 +546,4 @@ func (parser *Parser) Language(project *Project) bool {
 	}
 	return parser.isParsedSuccessfully
 }
+*/

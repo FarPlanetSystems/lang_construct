@@ -1,4 +1,4 @@
-package main
+package compiler_objects
 
 type UnverifiedElementQueue struct {
 	elements []UnverifiedElement
