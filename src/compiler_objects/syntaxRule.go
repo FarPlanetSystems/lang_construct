@@ -26,6 +26,15 @@ func (rule SyntaxRule) PrintSyntaxRule() {
 	}
 }
 
+func (rule SyntaxRule) ContainsEOFOption() bool {
+	for _, option := range rule.Options {
+		if option.HeadWord.Content.TokenType == INNER_EOF {
+			return true
+		}
+	}
+	return false
+}
+
 func (option SyntaxOption) PrintSyntaxOption() {
 	opt := option
 	for !opt.IsEmpty {
@@ -47,6 +56,13 @@ func CreateSyntaxOption() SyntaxOption {
 		tailWord: nil,
 		IsEmpty:  true,
 	}
+}
+
+func CreateEOFSyntaxOption() SyntaxOption {
+	EOFOption := CreateSyntaxOption()
+	EOFToken := CreateToken(INNER_EOF, "")
+	EOFOption.Enqueue(GrammarWord{Content: EOFToken})
+	return EOFOption
 }
 
 func (option *SyntaxOption) Enqueue(word GrammarWord) {

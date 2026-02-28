@@ -33,7 +33,7 @@ func (compiler *Compiler) Compile() *Project {
 	//fmt.Println(statements)
 	if (*statements).IsEmpty {
 		compiler.Messanger.InsertMessage("Compilation failed", 0)
-		compiler.Messanger.Report()
+		compiler.IsParsedSuccessfully = false
 		return nil
 	}
 
@@ -47,9 +47,6 @@ func (compiler *Compiler) Compile() *Project {
 		statements.Dequeue()
 		//fmt.Println(statement)
 	}
-	if compiler.IsParsedSuccessfully {
-		fmt.Println("parsed successfully")
-	}
 	project := createProject(compiler.allSyntaxRules, compiler.allPropositions)
 	return project
 }
@@ -61,8 +58,8 @@ func (compiler *Compiler) ScanCode() *compiler_objects.StatementQueue {
 	token := lexer.getNextToken(compiler.Messanger)
 	for token.TokenType != compiler_objects.REPORT_SECTION && token.TokenType != compiler_objects.EOF {
 		if token.TokenType == compiler_objects.UNEXPECTED_SYMBOL {
-			fmt.Println("error 1")
 			compiler.Messanger.InsertMessage("Unexpected symbol: "+token.Value, lexer.current_line)
+			compiler.IsParsedSuccessfully = false
 			return res
 		}
 		//fmt.Println("token: " + token.token_type)
@@ -70,6 +67,7 @@ func (compiler *Compiler) ScanCode() *compiler_objects.StatementQueue {
 
 		if statement.IsEmpty() {
 			fmt.Println("error 2")
+			compiler.IsParsedSuccessfully = false
 			return res
 		}
 		fmt.Println("enqueuing statement:")
@@ -88,11 +86,12 @@ func (compiler *Compiler) scanStatement(lexer *Lexer, token compiler_objects.Tok
 		//fmt.Println("token2: " + token.token_type)
 		if token.TokenType == compiler_objects.UNEXPECTED_SYMBOL {
 			compiler.Messanger.InsertMessage("Unexpected symbol: "+token.Value, lexer.current_line)
-
+			compiler.IsParsedSuccessfully = false
 			return compiler_objects.CreateStatement()
 		}
 		if token.TokenType == compiler_objects.EOF {
 			compiler.Messanger.InsertMessage("Semi colon in the end of the code missing", lexer.current_line)
+			compiler.IsParsedSuccessfully = false
 			return compiler_objects.CreateStatement()
 		}
 		//fmt.Println(token)
@@ -125,6 +124,7 @@ func (compiler *Compiler) ParseStatement(statement compiler_objects.Statement) {
 		compiler.allPropositions = append(compiler.allPropositions, proposition)
 	default:
 		compiler.Messanger.InsertMessage("Error: ID was expected.", stmt.Line)
+		compiler.IsParsedSuccessfully = false
 	}
 
 }

@@ -11,12 +11,20 @@ type RESERVED_KEYWORD struct {
 	token   compiler_objects.Token
 }
 
-var RESERVED_KEYWORDS = [7]RESERVED_KEYWORD{
+var RESERVED_KEYWORDS = [8]RESERVED_KEYWORD{
 	{
 		keyword: "rule",
 		token: compiler_objects.Token{
 			TokenType: compiler_objects.RULE,
 			Value:     "rule",
+		},
+	},
+
+	{
+		keyword: "EOF",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.INNER_EOF,
+			Value:     "EOF",
 		},
 	},
 

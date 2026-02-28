@@ -71,6 +71,10 @@ func (parser *Parser) parseGrammarRuleWord() compiler_objects.GrammarWord {
 		word := parser.currentToken()
 		parser.eatToken(compiler_objects.ID)
 		return compiler_objects.GrammarWord{Content: compiler_objects.Token{Value: word.Value, TokenType: word.TokenType}}
+
+	case compiler_objects.INNER_EOF:
+		parser.eatToken(compiler_objects.INNER_EOF)
+		return compiler_objects.GrammarWord{Content: compiler_objects.Token{Value: "", TokenType: compiler_objects.INNER_EOF}}
 	default:
 		parser.messager.InsertMessage("ERROR: grammar rule id or string word expected, but "+parser.currentToken().TokenType+" was found", parser.currentStatement.Line)
 		parser.isParsedSuccessfully = false
@@ -81,9 +85,8 @@ func (parser *Parser) parseGrammarRuleWord() compiler_objects.GrammarWord {
 
 func (parser *Parser) parseGrammarAddRule() []compiler_objects.SyntaxOption {
 	options := []compiler_objects.SyntaxOption{}
-	if parser.currentToken().TokenType == compiler_objects.STRING || parser.currentToken().TokenType == compiler_objects.ID {
-		options = append(options, parser.parseGrammarRule())
-	}
+	options = append(options, parser.parseGrammarRule())
+
 	for parser.currentToken().TokenType == compiler_objects.COMMA {
 		parser.eatToken(compiler_objects.COMMA)
 		options = append(options, parser.parseGrammarRule())

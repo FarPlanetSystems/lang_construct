@@ -29,6 +29,7 @@ const SQ_BRACKEtS_R = "SQ_BRACKETS_R"
 const SQ_BRACKETS_L = "SQ_BRACKETS_R"
 const ANY = "ANY"
 const EOF = "EOF"
+const INNER_EOF = "INNER_EOF"
 const CONCLUSION_TOKEN = "CONCLUSION_TOKEN"
 
 type Token struct {

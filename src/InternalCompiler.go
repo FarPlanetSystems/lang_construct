@@ -10,15 +10,15 @@ import (
 type InnerCompiler struct {
 	IsParsedSuccessfully bool
 	// it would be more wise if there were an internal messenger istead of importing from external
-	Messenger       Messenger
+	Messenger       *Messenger
 	allPropositions []compiler_objects.Proposition
 	allSyntaxRules  []compiler_objects.SyntaxRule
 }
 
-func CreateInnerCompiler(project Project) InnerCompiler {
-	return InnerCompiler{
+func CreateInnerCompiler(project Project) *InnerCompiler {
+	return &InnerCompiler{
 		IsParsedSuccessfully: true,
-		Messenger:            Messenger{},
+		Messenger:            &Messenger{},
 		allPropositions:      project.allPropositions,
 		allSyntaxRules:       project.allSyntaxRules,
 	}
@@ -48,18 +48,18 @@ func (compiler *InnerCompiler) innerParseProposition(root compiler_objects.Synta
 
 	// inner eat
 	for !option.IsEmpty {
-		//fmt.Println("remaining tokens to parse")
-		//compiler_objects.PrintStatement(result.Conclusion)
-		//fmt.Println("remaining tokens to expect")
-		//option.PrintSyntaxOption()
-		if option.HeadWord.Content.TokenType == compiler_objects.ID {
-
+		fmt.Println("remaining tokens to parse")
+		compiler_objects.PrintStatement(result.Conclusion)
+		fmt.Println("remaining tokens to expect")
+		option.PrintSyntaxOption()
+		switch option.HeadWord.Content.TokenType {
+		case compiler_objects.ID:
 			result = compiler.innerParsePropositionHandleIDToken(&option, result)
-
-		} else {
+		case compiler_objects.STRING:
 			result = compiler.innerParsePropositionHandleSTRINGToken(&option, result)
+		case compiler_objects.INNER_EOF:
+			option.Dequeue()
 		}
-
 	}
 
 	return result
@@ -67,22 +67,22 @@ func (compiler *InnerCompiler) innerParseProposition(root compiler_objects.Synta
 
 func (compiler *InnerCompiler) innerParsePropositionHandleIDToken(option *compiler_objects.SyntaxOption, result *compiler_objects.Proposition) *compiler_objects.Proposition {
 
+	//fmt.Println("handle ID:" + option.HeadWord.Content.Value)
+
 	nextRuleName := option.HeadWord.Content.Value
 	nextRule := compiler.findSyntaxRule(nextRuleName)
 	if nextRule.Name != "" {
 		result = compiler.innerParseProposition(nextRule, *(result))
-		fmt.Println(option.HeadWord.Content)
-		option.Dequeue()
-		//fmt.Println(result.conclusion.headToken.content.value)
-
 	} else {
 		compiler.Messenger.InsertMessage("inner parsing error: unknown grammar rule name found: "+nextRuleName, result.Line)
 		compiler.IsParsedSuccessfully = false
 	}
+	option.Dequeue()
 	return result
 }
 
 func (compiler *InnerCompiler) innerParsePropositionHandleSTRINGToken(option *compiler_objects.SyntaxOption, result *compiler_objects.Proposition) *compiler_objects.Proposition {
+	//fmt.Println("handle string:" + option.HeadWord.Content.Value)
 	if result.Conclusion.IsEmpty() {
 		compiler.Messenger.InsertMessage("inner parsing error: no correct error for the expression was found. ", result.Line)
 		compiler.IsParsedSuccessfully = false
@@ -105,17 +105,38 @@ func (compiler *InnerCompiler) decideOption(rule compiler_objects.SyntaxRule, pr
 	fmt.Println("determining rule")
 	fmt.Println("initial rule:")
 	rule.PrintSyntaxRule()
-
-	first := proposition.Conclusion.HeadToken.Content
-
+	first := proposition.Conclusion.Face()
 	for _, option := range rule.Options {
-		if option.HeadWord.Content.TokenType == compiler_objects.STRING && option.HeadWord.Content.Value == first.Value {
-			return option
+		//fmt.Println("deciding option: " + option.HeadWord.Content.TokenType)
+
+		switch option.HeadWord.Content.TokenType {
+		case compiler_objects.STRING:
+			if option.HeadWord.Content.Value == first.Value {
+				//fmt.Println("String")
+				return option
+			}
+
+		case compiler_objects.ID:
+			nextRule := compiler.findSyntaxRule(option.HeadWord.Content.Value)
+			fmt.Println("first set: " + nextRule.Name)
+			fmt.Println(compiler.getFirstSet(nextRule))
+			if slices.Contains(compiler.getFirstSet(nextRule), first.Value) {
+				//fmt.Println("ID")
+				return option
+			}
+
+		case compiler_objects.INNER_EOF:
+			if proposition.Conclusion.IsEmpty() {
+				//fmt.Println("EOF")
+				return compiler_objects.CreateEOFSyntaxOption()
+			}
+		default:
+			//fmt.Println("default")
 		}
-		nextRule := compiler.findSyntaxRule(option.HeadWord.Content.Value)
-		if slices.Contains(compiler.getFirstSet(nextRule), first.Value) {
-			return option
-		}
+	}
+
+	if !proposition.Conclusion.IsEmpty() && rule.ContainsEOFOption() {
+		return compiler_objects.CreateEOFSyntaxOption()
 	}
 
 	compiler.Messenger.InsertMessage("no correct syntax rule for the schema was found", proposition.Line)
@@ -126,12 +147,15 @@ func (compiler *InnerCompiler) decideOption(rule compiler_objects.SyntaxRule, pr
 func (compiler *InnerCompiler) getFirstSet(rule compiler_objects.SyntaxRule) []string {
 	res := []string{}
 	for _, option := range rule.Options {
-		if option.HeadWord.Content.TokenType == compiler_objects.STRING {
+		switch option.HeadWord.Content.TokenType {
+		case compiler_objects.STRING:
 			res = append(res, option.HeadWord.Content.Value)
-		} else {
+		case compiler_objects.ID:
 			optionRule := compiler.findSyntaxRule(option.HeadWord.Content.Value)
 			optionTokens := compiler.getFirstSet(optionRule)
 			res = append(res, optionTokens...)
+		case compiler_objects.INNER_EOF:
+			res = append(res, "")
 		}
 	}
 	return res
