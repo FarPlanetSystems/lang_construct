@@ -2,20 +2,20 @@ package compiler_objects
 
 import "fmt"
 
-type Statement struct {
+type Formula struct {
 	Line              int
 	HeadToken         *TokenNode
 	tailToken         *TokenNode
-	previousStatement *Statement
+	previousStatement *Formula
 }
 
-func (statement Statement) IsEmpty() bool {
+func (statement Formula) IsEmpty() bool {
 	return statement.HeadToken == nil
 }
 
-func CreateStatement() Statement {
-	res := Statement{
-		Line:      0,
+func CreateStatement(line int) Formula {
+	res := Formula{
+		Line:      line,
 		HeadToken: nil,
 		tailToken: nil,
 	}
@@ -23,8 +23,8 @@ func CreateStatement() Statement {
 }
 
 type StatementQueue struct {
-	headStatement *Statement
-	tailStatement *Statement
+	headStatement *Formula
+	tailStatement *Formula
 	IsEmpty       bool
 }
 
@@ -53,7 +53,7 @@ func (queue *StatementQueue) Dequeue() {
 	//fmt.Println(queue.headStatement.previousStatement)
 }
 
-func (queue *StatementQueue) Enqueue(statement Statement) {
+func (queue *StatementQueue) Enqueue(statement Formula) {
 	if queue.IsEmpty {
 		queue.headStatement = &statement
 		queue.tailStatement = &statement
@@ -64,7 +64,7 @@ func (queue *StatementQueue) Enqueue(statement Statement) {
 	queue.IsEmpty = false
 }
 
-func (queue *StatementQueue) Face() *Statement {
+func (queue *StatementQueue) Face() *Formula {
 	return queue.headStatement
 }
 
@@ -74,7 +74,7 @@ type TokenNode struct {
 	IsPreviousNodeEmpty bool
 }
 
-func (statement *Statement) Enqueue(token Token) {
+func (statement *Formula) Enqueue(token Token) {
 
 	tokenNode := TokenNode{
 		Content:             token,
@@ -94,7 +94,7 @@ func (statement *Statement) Enqueue(token Token) {
 	}
 }
 
-func (statement *Statement) Dequeue() {
+func (statement *Formula) Dequeue() {
 	if statement.IsEmpty() {
 		return
 	}
@@ -106,13 +106,13 @@ func (statement *Statement) Dequeue() {
 	}
 }
 
-func (statement *Statement) Face() Token {
+func (statement *Formula) Face() Token {
 	if statement.IsEmpty() {
 		return Token{}
 	}
 	return statement.HeadToken.Content
 }
-func PrintStatement(statement Statement) {
+func PrintStatement(statement Formula) {
 	statement_copy := statement
 	ref := &statement_copy
 	for !ref.IsEmpty() {
@@ -121,7 +121,52 @@ func PrintStatement(statement Statement) {
 	}
 }
 
-func mergeStatements(head Statement, tail Statement) Statement {
+func (statement1 Formula) Compare(statement2 Formula) bool {
+	for !statement1.IsEmpty() && !statement2.IsEmpty() {
+		if statement1.Face().Value != statement2.Face().Value {
+			return false
+		}
+		statement1.Dequeue()
+		statement2.Dequeue()
+	}
+	if statement1.IsEmpty() && statement2.IsEmpty() {
+		return true
+	}
+	return false
+}
+
+func (stmt Formula) Exchange(value Formula, tokenSequence Formula) Formula {
+	result := CreateStatement(stmt.Line)
+	for !stmt.IsEmpty() {
+		if !stmt.containsStatementFace(value) {
+			result.Enqueue(stmt.Face())
+			stmt.Dequeue()
+		} else {
+			sequence := tokenSequence
+			for !sequence.IsEmpty() {
+				result.Enqueue(sequence.Face())
+				sequence.Dequeue()
+			}
+			stmt.Dequeue()
+		}
+	}
+	return result
+
+}
+
+func (stmt Formula) containsStatementFace(contains Formula) bool {
+	con := contains
+	for !con.IsEmpty() {
+		if con.Face() != stmt.Face() {
+			return false
+		}
+		con.Dequeue()
+		stmt.Dequeue()
+	}
+	return true
+}
+
+func mergeStatements(head Formula, tail Formula) Formula {
 	res := head
 	add := tail
 	for !add.IsEmpty() {

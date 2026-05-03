@@ -11,7 +11,7 @@ type RESERVED_KEYWORD struct {
 	token   compiler_objects.Token
 }
 
-var RESERVED_KEYWORDS = [8]RESERVED_KEYWORD{
+var RESERVED_KEYWORDS = [11]RESERVED_KEYWORD{
 	{
 		keyword: "rule",
 		token: compiler_objects.Token{
@@ -21,10 +21,34 @@ var RESERVED_KEYWORDS = [8]RESERVED_KEYWORD{
 	},
 
 	{
+		keyword: "substitution",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.SUBSTITUTION,
+			Value:     "substitution",
+		},
+	},
+
+	{
+		keyword: "substitute",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.SUBSTITUTION,
+			Value:     "substitute",
+		},
+	},
+
+	{
 		keyword: "EOF",
 		token: compiler_objects.Token{
 			TokenType: compiler_objects.INNER_EOF,
 			Value:     "EOF",
+		},
+	},
+
+	{
+		keyword: "axiom",
+		token: compiler_objects.Token{
+			TokenType: compiler_objects.AXIOM,
+			Value:     "axiom",
 		},
 	},
 
@@ -87,7 +111,9 @@ func findReservedWord(word string) int {
 }
 
 const LEXER_MODE_DEFAULT = "LEXER_MODE_DEFAULT"
-const LEXER_MODE_HAVE = "LEXER_MODE_HAVE"
+const LEXER_MODE_FORMULA = "LEXER_MODE_HAVE"
+const LEXER_MODE_PREMISE = "LEXER_MODE_PREMISE"
+const LEXER_MODE_FORMULA_PARAMS = "LEXER_MODE_FORMULA_PARAMS"
 
 type Lexer struct {
 	text         string
@@ -183,18 +209,21 @@ func readId(lexer *Lexer) compiler_objects.Token {
 	index := findReservedWord(result)
 
 	if index != -1 {
+		if result == "substitute" {
+			lexer.mode = LEXER_MODE_FORMULA_PARAMS
+		}
 		return RESERVED_KEYWORDS[index].token
 	}
 	return compiler_objects.CreateToken(compiler_objects.ID, result)
 }
 
-func readConclusionToken(lexer *Lexer) compiler_objects.Token {
+func readFormulaToken(lexer *Lexer) compiler_objects.Token {
 	result := ""
 	for isIdCharCorrect(lexer.current_char) {
 		result += string(lexer.current_char)
 		advance(lexer)
 	}
-	return compiler_objects.CreateToken(compiler_objects.CONCLUSION_TOKEN, result)
+	return compiler_objects.CreateToken(compiler_objects.FORMULA_TOKEN, result)
 }
 
 // the function checks if a char can be represented in a id string
@@ -223,7 +252,7 @@ func (lexer *Lexer) getNextToken(messager *Messenger) compiler_objects.Token {
 	for lexer.current_char != 0 {
 		//fmt.Println(string(lexer.current_char))
 		//fmt.Println("mode " + lexer.mode)
-		if lexer.mode == LEXER_MODE_HAVE {
+		if lexer.mode == LEXER_MODE_FORMULA {
 			switch lexer.current_char {
 			case byte(';'):
 				advance(lexer)
@@ -232,7 +261,47 @@ func (lexer *Lexer) getNextToken(messager *Messenger) compiler_objects.Token {
 				return compiler_objects.CreateToken(compiler_objects.SEMI_COLON, ";")
 
 			default:
-				return readConclusionToken(lexer)
+				return readFormulaToken(lexer)
+			}
+		}
+		if lexer.mode == LEXER_MODE_PREMISE {
+			switch lexer.current_char {
+			case byte(';'):
+				advance(lexer)
+				(*lexer).mode = LEXER_MODE_DEFAULT
+				return compiler_objects.CreateToken(compiler_objects.SEMI_COLON, ";")
+			case byte('-'):
+				if peek(lexer) == byte('>') {
+					advance(lexer)
+					advance(lexer)
+					(*lexer).mode = LEXER_MODE_FORMULA
+					return compiler_objects.CreateToken(compiler_objects.ARROW, "->")
+				} else {
+					return readFormulaToken(lexer)
+				}
+			default:
+				return readFormulaToken(lexer)
+			}
+
+		}
+		if lexer.mode == LEXER_MODE_FORMULA_PARAMS {
+			switch lexer.current_char {
+			case byte(';'):
+				advance(lexer)
+				(*lexer).mode = LEXER_MODE_DEFAULT
+				return compiler_objects.CreateToken(compiler_objects.SEMI_COLON, ";")
+			case byte('('):
+				advance(lexer)
+				return compiler_objects.CreateToken(compiler_objects.BRACKETS_L, "(")
+			case byte(')'):
+				lexer.mode = LEXER_MODE_DEFAULT
+				advance(lexer)
+				return compiler_objects.CreateToken(compiler_objects.BRACKETS_R, ")")
+			case byte(','):
+				advance(lexer)
+				return compiler_objects.CreateToken(compiler_objects.COMMA, ",")
+			default:
+				return readFormulaToken(lexer)
 			}
 		}
 		switch lexer.current_char {
@@ -288,11 +357,14 @@ func (lexer *Lexer) getNextToken(messager *Messenger) compiler_objects.Token {
 				advance(lexer)
 				return compiler_objects.CreateToken(compiler_objects.COLON_EQUAL, ":=")
 			}
+			advance(lexer)
+			lexer.mode = LEXER_MODE_PREMISE
 			return compiler_objects.CreateToken(compiler_objects.COLON, ":")
 		case byte('-'): // conclusion intro
 			if peek(lexer) == byte('>') {
 				advance(lexer)
 				advance(lexer)
+				(*lexer).mode = LEXER_MODE_FORMULA
 				return compiler_objects.CreateToken(compiler_objects.ARROW, "->")
 			} else {
 				messager.InsertMessage("Unexpected symbol: -> was expected.", lexer.current_line)
@@ -305,9 +377,9 @@ func (lexer *Lexer) getNextToken(messager *Messenger) compiler_objects.Token {
 		default:
 			if unicode.IsLetter(rune(lexer.current_char)) || unicode.IsDigit(rune(lexer.current_char)) { // reading keywords or names of rules
 				idToken := readId(lexer)
-				if idToken.TokenType == compiler_objects.HAVE {
+				if idToken.TokenType == compiler_objects.HAVE || idToken.TokenType == compiler_objects.AXIOM {
 					//fmt.Println("changing mode have")
-					(*lexer).mode = LEXER_MODE_HAVE
+					(*lexer).mode = LEXER_MODE_FORMULA
 				}
 				return idToken
 			} else {

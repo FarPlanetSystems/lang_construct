@@ -16,6 +16,7 @@ const COMMENT = "COMMENT"
 const ID = "ID"
 const HAVE = "HAVE"
 const RULE = "RULE"
+const AXIOM = "AXIOM"
 const DEF = "DEF"
 const IF = "IF"
 const SPEC = "SPEC"
@@ -30,7 +31,9 @@ const SQ_BRACKETS_L = "SQ_BRACKETS_R"
 const ANY = "ANY"
 const EOF = "EOF"
 const INNER_EOF = "INNER_EOF"
-const CONCLUSION_TOKEN = "CONCLUSION_TOKEN"
+const FORMULA_TOKEN = "FORMULA_TOKEN"
+const SUBSTITUTION = "SUBSTITUTION"
+const SUBSTITUTE = "SUBSTITUTE"
 
 type Token struct {
 	TokenType string

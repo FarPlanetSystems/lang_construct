@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"slices"
 
 	"github.com/FarPlanetSystems/lang_construct/compiler_objects"
@@ -13,99 +12,121 @@ type InnerCompiler struct {
 	Messenger       *Messenger
 	allPropositions []compiler_objects.Proposition
 	allSyntaxRules  []compiler_objects.SyntaxRule
+	allAxioms       []compiler_objects.Axiom
 }
 
 func CreateInnerCompiler(project Project) *InnerCompiler {
 	return &InnerCompiler{
 		IsParsedSuccessfully: true,
 		Messenger:            &Messenger{},
-		allPropositions:      project.allPropositions,
-		allSyntaxRules:       project.allSyntaxRules,
+		allPropositions:      project.AllPropositions,
+		allSyntaxRules:       project.AllSyntaxRules,
+		allAxioms:            project.AllAxioms,
 	}
 }
 
 func (compiler *InnerCompiler) InnerParse() {
 	root := compiler.findSyntaxRule("proposition")
-	fmt.Println("root: ")
-	root.PrintSyntaxRule()
+	//fmt.Println("root: ")
+	//root.PrintSyntaxRule()
 	for _, proposition := range compiler.allPropositions {
-		compiler_objects.PrintStatement(proposition.Conclusion)
-		result := compiler.innerParseProposition(root, proposition)
-		if !result.Conclusion.IsEmpty() {
-			compiler.Messenger.InsertMessage("inner parsing error: found "+result.Conclusion.Face().Value+
-				" while EOF was expected", result.Line)
+		//compiler_objects.PrintStatement(proposition.Formula)
+		err := compiler.innerParseFormula(root, proposition.Formula)
+		if err.isError {
+			compiler.Messenger.InsertMessage(err.Message, err.line)
+			compiler.IsParsedSuccessfully = false
+		}
+	}
 
+	for _, axiom := range compiler.allAxioms {
+		err := compiler.innerParseFormula(root, axiom.Formula)
+		if err.isError {
+			compiler.Messenger.InsertMessage(err.Message, err.line)
 			compiler.IsParsedSuccessfully = false
 		}
 	}
 }
 
-// next step: find out how to simplify the algorithm for inner parse. Extend it for more complicate syntaxes
-func (compiler *InnerCompiler) innerParseProposition(root compiler_objects.SyntaxRule, proposition compiler_objects.Proposition) *compiler_objects.Proposition {
-	result := &proposition
+func (compiler *InnerCompiler) innerParseFormula(root compiler_objects.SyntaxRule, formula compiler_objects.Formula) Error {
 
-	option := compiler.decideOption(root, proposition)
+	result, err := compiler.innerParseFormulaHandleToken(root, formula)
+
+	if !result.IsEmpty() {
+		err.isError = true
+		err.Message = "inner parsing error: found " + result.Face().Value + " while end of expression was expected"
+		err.line = result.Line
+	}
+	return err
+}
+
+func (compiler *InnerCompiler) innerParseFormulaHandleToken(root compiler_objects.SyntaxRule, formula compiler_objects.Formula) (*compiler_objects.Formula, Error) {
+	result := &formula
+	option, err := compiler.decideOption(root, formula)
 
 	// inner eat
-	for !option.IsEmpty {
-		fmt.Println("remaining tokens to parse")
-		compiler_objects.PrintStatement(result.Conclusion)
-		fmt.Println("remaining tokens to expect")
-		option.PrintSyntaxOption()
+	for !option.IsEmpty && !err.isError {
+		//fmt.Println("remaining tokens to parse")
+		//compiler_objects.PrintStatement(result.Conclusion)
+		//fmt.Println("remaining tokens to expect")
+		//option.PrintSyntaxOption()
 		switch option.HeadWord.Content.TokenType {
 		case compiler_objects.ID:
-			result = compiler.innerParsePropositionHandleIDToken(&option, result)
+			result, err = compiler.innerParseFormulaHandleIDToken(&option, result)
 		case compiler_objects.STRING:
-			result = compiler.innerParsePropositionHandleSTRINGToken(&option, result)
+			result, err = compiler.innerParseFormulaHandleSTRINGToken(&option, result)
 		case compiler_objects.INNER_EOF:
 			option.Dequeue()
 		}
 	}
 
-	return result
+	return result, err
 }
 
-func (compiler *InnerCompiler) innerParsePropositionHandleIDToken(option *compiler_objects.SyntaxOption, result *compiler_objects.Proposition) *compiler_objects.Proposition {
+func (compiler *InnerCompiler) innerParseFormulaHandleIDToken(option *compiler_objects.SyntaxOption, result *compiler_objects.Formula) (*compiler_objects.Formula, Error) {
 
 	//fmt.Println("handle ID:" + option.HeadWord.Content.Value)
-
+	err := createError()
 	nextRuleName := option.HeadWord.Content.Value
 	nextRule := compiler.findSyntaxRule(nextRuleName)
 	if nextRule.Name != "" {
-		result = compiler.innerParseProposition(nextRule, *(result))
+		result, err = compiler.innerParseFormulaHandleToken(nextRule, *(result))
 	} else {
-		compiler.Messenger.InsertMessage("inner parsing error: unknown grammar rule name found: "+nextRuleName, result.Line)
-		compiler.IsParsedSuccessfully = false
+		err.isError = true
+		err.Message = "inner parsing error: unknown grammar rule name found: " + nextRuleName
+		err.line = result.Line
 	}
 	option.Dequeue()
-	return result
+	return result, err
 }
 
-func (compiler *InnerCompiler) innerParsePropositionHandleSTRINGToken(option *compiler_objects.SyntaxOption, result *compiler_objects.Proposition) *compiler_objects.Proposition {
+func (compiler *InnerCompiler) innerParseFormulaHandleSTRINGToken(option *compiler_objects.SyntaxOption, result *compiler_objects.Formula) (*compiler_objects.Formula, Error) {
 	//fmt.Println("handle string:" + option.HeadWord.Content.Value)
-	if result.Conclusion.IsEmpty() {
-		compiler.Messenger.InsertMessage("inner parsing error: no correct error for the expression was found. ", result.Line)
-		compiler.IsParsedSuccessfully = false
+	err := createError()
+	if result.IsEmpty() {
+		err.Message = "inner parsing error: no correct syntax rule for the expression was found. "
+		err.line = result.Line
+		err.isError = true
+		return result, err
 	}
-	if result.Conclusion.HeadToken.Content.Value != option.HeadWord.Content.Value {
-
-		compiler.Messenger.InsertMessage("inner parsing error: found "+result.Conclusion.Face().Value+
-			" while "+option.HeadWord.Content.Value+" was expected", result.Line)
-
-		compiler.IsParsedSuccessfully = false
+	if result.HeadToken.Content.Value != option.HeadWord.Content.Value {
+		err.Message = "inner parsing error: found " + result.Face().Value + " while " + option.HeadWord.Content.Value + " was expected"
+		err.isError = true
+		err.line = result.Line
+		return result, err
 	}
-	result.Conclusion.Dequeue()
+	result.Dequeue()
 	option.Dequeue()
-	return result
+	return result, err
 
 }
 
 // remember that every grammar rule option has its one unique first set
-func (compiler *InnerCompiler) decideOption(rule compiler_objects.SyntaxRule, proposition compiler_objects.Proposition) compiler_objects.SyntaxOption {
-	fmt.Println("determining rule")
-	fmt.Println("initial rule:")
-	rule.PrintSyntaxRule()
-	first := proposition.Conclusion.Face()
+func (compiler *InnerCompiler) decideOption(rule compiler_objects.SyntaxRule, formula compiler_objects.Formula) (compiler_objects.SyntaxOption, Error) {
+	//fmt.Println("determining rule")
+	//fmt.Println("initial rule:")
+	//rule.PrintSyntaxRule()
+	err := createError()
+	first := formula.Face()
 	for _, option := range rule.Options {
 		//fmt.Println("deciding option: " + option.HeadWord.Content.TokenType)
 
@@ -113,35 +134,35 @@ func (compiler *InnerCompiler) decideOption(rule compiler_objects.SyntaxRule, pr
 		case compiler_objects.STRING:
 			if option.HeadWord.Content.Value == first.Value {
 				//fmt.Println("String")
-				return option
+				return option, err
 			}
 
 		case compiler_objects.ID:
 			nextRule := compiler.findSyntaxRule(option.HeadWord.Content.Value)
-			fmt.Println("first set: " + nextRule.Name)
-			fmt.Println(compiler.getFirstSet(nextRule))
+			//fmt.Println("first set: " + nextRule.Name)
+			//fmt.Println(compiler.getFirstSet(nextRule))
 			if slices.Contains(compiler.getFirstSet(nextRule), first.Value) {
 				//fmt.Println("ID")
-				return option
+				return option, err
 			}
 
 		case compiler_objects.INNER_EOF:
-			if proposition.Conclusion.IsEmpty() {
+			if formula.IsEmpty() {
 				//fmt.Println("EOF")
-				return compiler_objects.CreateEOFSyntaxOption()
+				return compiler_objects.CreateEOFSyntaxOption(), err
 			}
 		default:
 			//fmt.Println("default")
 		}
 	}
 
-	if !proposition.Conclusion.IsEmpty() && rule.ContainsEOFOption() {
-		return compiler_objects.CreateEOFSyntaxOption()
+	if !formula.IsEmpty() && rule.ContainsEOFOption() {
+		return compiler_objects.CreateEOFSyntaxOption(), err
 	}
-
-	compiler.Messenger.InsertMessage("no correct syntax rule for the schema was found", proposition.Line)
-	compiler.IsParsedSuccessfully = false
-	return compiler_objects.CreateSyntaxOption()
+	err.isError = true
+	err.Message = "no correct syntax rule for the schema was found"
+	err.line = formula.Line
+	return compiler_objects.CreateSyntaxOption(), err
 }
 
 func (compiler *InnerCompiler) getFirstSet(rule compiler_objects.SyntaxRule) []string {
